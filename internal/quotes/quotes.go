@@ -1,6 +1,7 @@
 package quotes
 
 import (
+	_ "embed"
 	"encoding/json"
 	"math/rand"
 	"sync"
@@ -9,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:embed quotes.json
+//go:embed costanza.json
 var quotesData []byte
 
 type QuoteEngine struct {

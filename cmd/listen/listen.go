@@ -42,6 +42,16 @@ type Server struct {
 	//roller Roller TODO
 }
 
+func init() {
+	Cmd.PersistentFlags().StringSliceVarP(
+		&config.OverwriteInsomniacIds,
+		"insomniacIds",
+		"i",
+		nil,
+		"Overwrite insomniac ids for bedtime reminders",
+	)
+}
+
 func newServer() (*Server, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -70,13 +80,14 @@ func runListen(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	dg.AddHandler(server.EchoQuote)
+	dg.AddHandler(server.EchoInsomniac)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
 	dg.Open()
 	defer dg.Close()
 	log.Printf("Bot started, CTL-C to quit")
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	return nil

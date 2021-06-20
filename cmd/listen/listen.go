@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package listen
 
 import (
 	"log"
@@ -28,15 +28,11 @@ import (
 )
 
 // listenCmd represents the listen command
-var listenCmd = &cobra.Command{
+var Cmd = &cobra.Command{
 	Use:   "listen",
 	Short: "Start bot listening on server",
 	Long:  `Start Bot & begin processing incoming events`,
 	RunE:  runListen,
-}
-
-func init() {
-	rootCmd.AddCommand(listenCmd)
 }
 
 func runListen(cmd *cobra.Command, args []string) error {

@@ -18,6 +18,9 @@ package cmd
 import (
 	"log"
 
+	"github.com/dmtaylor/costanza/cmd/listen"
+	"github.com/dmtaylor/costanza/cmd/register"
+	"github.com/dmtaylor/costanza/cmd/roll"
 	"github.com/dmtaylor/costanza/internal/config"
 	"github.com/spf13/cobra"
 )
@@ -42,6 +45,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVarP(&config.Values.DiscordToken, "token", "i", "", "Overwrite bot token")
+	rootCmd.AddCommand(listen.Cmd, roll.Cmd, register.Cmd)
 }
 
 // initConfig reads in config file and ENV variables if set.

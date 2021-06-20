@@ -11,15 +11,13 @@ type Config struct {
 	DiscordToken string
 }
 
-var Values = Config{
-	DiscordToken: "",
-}
-
-func Load() error {
+func Load() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
-		return errors.Wrap(err, "failed to load dotenv")
+		return nil, errors.Wrap(err, "failed to load dotenv")
 	}
-	Values.DiscordToken = os.Getenv("DISCORD_TOKEN")
-	return nil
+	cfg := Config{
+		DiscordToken: os.Getenv("DISCORD_TOKEN"),
+	}
+	return &cfg, nil
 }

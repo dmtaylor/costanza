@@ -22,8 +22,9 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/dmtaylor/costanza/internal/config"
-	"github.com/dmtaylor/costanza/internal/server"
+	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/quotes"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -35,19 +36,40 @@ var Cmd = &cobra.Command{
 	RunE:  runListen,
 }
 
+type Server struct {
+	config *config.Config
+	quotes *quotes.QuoteEngine
+	//roller Roller TODO
+}
+
+func newServer() (*Server, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load cfgs while building server")
+	}
+	qEngine, err := quotes.NewQuoteEngine()
+	if err != nil {
+		return nil, errors.Wrap(err, "server failed to build quote engine")
+	}
+	return &Server{
+		config: cfg,
+		quotes: qEngine,
+	}, nil
+}
+
 func runListen(cmd *cobra.Command, args []string) error {
-	server, err := server.New()
+	server, err := newServer()
 	if err != nil {
 		log.Printf("failed to build state")
 		return err
 	}
 
-	dg, err := discordgo.New("Bot " + config.Values.DiscordToken)
+	dg, err := discordgo.New("Bot " + server.config.DiscordToken)
 	if err != nil {
 		log.Printf("failed to start bot: %s\n", err)
 		return err
 	}
-	dg.AddHandler(server.MessageCreate)
+	dg.AddHandler(server.EchoQuote)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
 	dg.Open()

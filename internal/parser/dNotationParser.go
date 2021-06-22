@@ -1,6 +1,16 @@
 package parser
 
+import (
+	"github.com/alecthomas/participle/v2"
+	"github.com/dmtaylor/costanza/internal/roller"
+)
+
 type Operator int
+
+type BasicParser struct {
+	roller *roller.BaseRoller
+	parser *participle.Parser
+}
 
 type DNotationResult struct {
 	Value    int
@@ -51,4 +61,15 @@ type OpTerm struct {
 type Expression struct {
 	Left  *Term     `@@`
 	Right []*OpTerm `@@*`
+}
+
+func NewBasicParser() *BasicParser {
+	return &BasicParser{
+		roller: roller.New(),
+		parser: participle.MustBuild(&Expression{}),
+	}
+}
+
+func (p *BasicParser) GetEBNF() string {
+	return p.parser.String()
 }

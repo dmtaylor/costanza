@@ -10,10 +10,12 @@ ${EXECFILE}: ${GO_ENTRY}
 clean:
 	- go clean
 
+rebuild: clean all
+
 docker-build:
 	docker-compose build
 
 docker-run:
 	docker-compose up
 
-.PHONY: all clean docker-build docker-run
+.PHONY: all clean rebuild docker-build docker-run

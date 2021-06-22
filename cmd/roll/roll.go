@@ -50,9 +50,10 @@ func init() {
 
 func runRoll(cmd *cobra.Command, args []string) error {
 	// TODO implement roller
+	parser := parser.NewBasicParser()
 	if printEBNF {
 		fmt.Printf("EBNF:\n")
-		fmt.Printf("%s\n", basicParser.String())
+		fmt.Printf("%s\n", parser.GetEBNF())
 	} else {
 		_ = 1 // NOP to silence warning
 		// NOT Implemented

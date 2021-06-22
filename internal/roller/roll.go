@@ -6,6 +6,12 @@ import (
 	"github.com/dmtaylor/costanza/internal/util"
 )
 
+type Roll interface {
+	Repr() string
+	Sum() int
+	Value() int
+}
+
 type BaseRoll []int
 
 func (r *BaseRoll) Repr() (string, error) {
@@ -32,4 +38,8 @@ func (r *BaseRoll) Sum() int {
 		sum += value
 	}
 	return sum
+}
+
+func (r *BaseRoll) Value() int {
+	return r.Sum()
 }

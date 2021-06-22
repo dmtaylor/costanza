@@ -16,23 +16,46 @@ limitations under the License.
 package roll
 
 import (
+	"fmt"
+
+	"github.com/alecthomas/participle/v2"
+	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/spf13/cobra"
 )
+
+var printEBNF bool
+
+var basicParser = participle.MustBuild(&parser.Expression{})
 
 // rollCmd represents the roll command
 var Cmd = &cobra.Command{
 	Use:   "roll",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Parse & do roll",
+	Long: `Testing command to perform basic roll via the cli.
+	
+	This should approximate the 'roll' slash command`,
 	RunE: runRoll,
+}
+
+func init() {
+	Cmd.PersistentFlags().BoolVarP(
+		&printEBNF,
+		"print-ebnf",
+		"p",
+		false,
+		"Print EBNF for basic roll rather than parse expr",
+	)
+
 }
 
 func runRoll(cmd *cobra.Command, args []string) error {
 	// TODO implement roller
+	if printEBNF {
+		fmt.Printf("EBNF:\n")
+		fmt.Printf("%s\n", basicParser.String())
+	} else {
+		_ = 1 // NOP to silence warning
+		// NOT Implemented
+	}
 	return nil
 }

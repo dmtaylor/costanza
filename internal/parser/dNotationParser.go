@@ -45,10 +45,9 @@ type Value struct {
 }
 
 type DFactor struct {
-	Count *Value `  @@`
+	Value *Value `  @@`
 	//Operator Operator `  "d"`
-	Sides *Value `  "d"@@`
-	Value *Value `| @@`
+	Sides *Value `  ("d"@@)?`
 }
 
 type OpFactor struct {
@@ -110,26 +109,26 @@ func (v *Value) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
 }
 
 func (d *DFactor) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
-	if d.Value != nil {
-		return d.Value.Eval(roller)
+	if d.Sides != nil {
+		leftRes, err := d.Value.Eval(roller)
+		if err != nil {
+			return nil, err
+		}
+		rightRes, err := d.Sides.Eval(roller)
+		if err != nil {
+			return nil, err
+		}
+		rollRes := roller.DoRoll(leftRes.Value, rightRes.Value)
+		rollStr, err := rollRes.Repr()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to build roll result string")
+		}
+		return &DNotationResult{
+			rollRes.Sum(),
+			rollStr,
+		}, nil
 	}
-	leftRes, err := d.Count.Eval(roller)
-	if err != nil {
-		return nil, err
-	}
-	rightRes, err := d.Sides.Eval(roller)
-	if err != nil {
-		return nil, err
-	}
-	rollRes := roller.DoRoll(leftRes.Value, rightRes.Value)
-	rollStr, err := rollRes.Repr()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build roll result string")
-	}
-	return &DNotationResult{
-		rollRes.Sum(),
-		rollStr,
-	}, nil
+	return d.Value.Eval(roller)
 
 }
 

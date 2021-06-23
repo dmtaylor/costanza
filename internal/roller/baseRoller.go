@@ -21,7 +21,7 @@ func New() *BaseRoller {
 func (r *BaseRoller) DoRoll(num int, base int) BaseRoll {
 	result := make(BaseRoll, num)
 	for i := 0; i < num; i++ {
-		result = append(result, r.getRoll(base))
+		result[i] = r.getRoll(base)
 	}
 	return result
 }

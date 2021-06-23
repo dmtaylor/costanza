@@ -16,7 +16,7 @@ type BaseRoll []int
 
 func (r *BaseRoll) Repr() (string, error) {
 	builder := strings.Builder{}
-	_, err := builder.WriteString("(")
+	_, err := builder.WriteString("[")
 	if err != nil {
 		return "", err
 	}
@@ -24,7 +24,7 @@ func (r *BaseRoll) Repr() (string, error) {
 	if err != nil {
 		return "", nil
 	}
-	_, err = builder.WriteString(")")
+	_, err = builder.WriteString("]")
 	if err != nil {
 		return "", nil
 	}

@@ -17,15 +17,15 @@ package roll
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
-	"github.com/alecthomas/participle/v2"
 	"github.com/dmtaylor/costanza/internal/parser"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
 var printEBNF bool
-
-var basicParser = participle.MustBuild(&parser.Expression{})
 
 // rollCmd represents the roll command
 var Cmd = &cobra.Command{
@@ -49,14 +49,20 @@ func init() {
 }
 
 func runRoll(cmd *cobra.Command, args []string) error {
-	// TODO implement roller
-	parser := parser.NewBasicParser()
+	input := strings.Join(args, " ")
+	parser, err := parser.NewBasicParser()
+	if err != nil {
+		return errors.Wrap(err, "failed to create parser")
+	}
 	if printEBNF {
 		fmt.Printf("EBNF:\n")
 		fmt.Printf("%s\n", parser.GetEBNF())
 	} else {
-		_ = 1 // NOP to silence warning
-		// NOT Implemented
+		results, err := parser.DoParse(input)
+		if err != nil {
+			return errors.Wrap(err, "failed to do parse")
+		}
+		fmt.Printf("%s = %s\n", results.StrValue, strconv.Itoa(results.Value))
 	}
 	return nil
 }

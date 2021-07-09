@@ -3,6 +3,7 @@ package listen
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -46,6 +47,43 @@ func (s *Server) EchoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 		}
 	}
 
+}
+
+func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.ID == sess.State.User.ID {
+		return
+	}
+	command := strings.Fields(m.Message.Content)
+
+	switch command[0] {
+	case "!roll":
+		s.doDNotationRoll(sess, m, strings.Join(command[1:], " "))
+	}
+}
+
+func (s *Server) doDNotationRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
+	result, err := s.dNotationParser.DoParse(rollStr)
+	if err != nil {
+		log.Printf("error parsing string: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			fmt.Sprintf("I was unable to understand your roll \"%s\". Why must there always be a problem?", rollStr),
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	response := fmt.Sprintf("%s = %d", result.StrValue, result.Value)
+	_, err = sess.ChannelMessageSendReply(
+		m.ChannelID,
+		response,
+		m.Reference(),
+	)
+	if err != nil {
+		log.Printf("error sending message: %s\n", err)
+	}
 }
 
 func isAfterHours() bool {

@@ -13,7 +13,7 @@ import (
 
 type Operator int
 
-type BasicParser struct {
+type DNotationParser struct {
 	roller *roller.BaseRoller
 	parser *participle.Parser
 }
@@ -44,19 +44,23 @@ type Value struct {
 	SubExpression *Expression `| "(" @@ ")"`
 }
 
-type DFactor struct {
-	Value *Value `  @@`
-	//Operator Operator `  "d"`
-	Sides *Value `  ("d"@@)?`
+type OpDValue struct {
+	Operator Operator `"d"`
+	Value    *Value   `@@`
+}
+
+type Factor struct {
+	Left  *Value      `@@`
+	Right []*OpDValue `@@*`
 }
 
 type OpFactor struct {
 	Operator Operator `@("*" | "/")`
-	DFactor  *DFactor `@@`
+	Factor   *Factor  `@@`
 }
 
 type Term struct {
-	Left  *DFactor    `@@`
+	Left  *Factor     `@@`
 	Right []*OpFactor `@@*`
 }
 
@@ -108,32 +112,33 @@ func (v *Value) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
 	}
 }
 
-func (d *DFactor) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
-	if d.Sides != nil {
-		leftRes, err := d.Value.Eval(roller)
-		if err != nil {
-			return nil, err
-		}
-		rightRes, err := d.Sides.Eval(roller)
-		if err != nil {
-			return nil, err
-		}
-		rollRes := roller.DoRoll(leftRes.Value, rightRes.Value)
-		rollStr, err := rollRes.Repr()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to build roll result string")
-		}
-		return &DNotationResult{
-			rollRes.Sum(),
-			rollStr,
-		}, nil
+func (d *Factor) Eval(baseRoller *roller.BaseRoller) (*DNotationResult, error) {
+	leftRes, err := d.Left.Eval(baseRoller)
+	if err != nil {
+		return nil, err
 	}
-	return d.Value.Eval(roller)
-
+	nrolls := leftRes.Value
+	strVal := leftRes.StrValue
+	for _, r := range d.Right {
+		rightRes, err := r.Value.Eval(baseRoller)
+		if err != nil {
+			return nil, err
+		}
+		rollRes := baseRoller.DoRoll(nrolls, rightRes.Value)
+		nrolls = rollRes.Sum()
+		strVal, err = rollRes.Repr()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &DNotationResult{
+		nrolls,
+		strVal,
+	}, nil
 }
 
-func (t *Term) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
-	l, err := t.Left.Eval(roller)
+func (t *Term) Eval(baseRoller *roller.BaseRoller) (*DNotationResult, error) {
+	l, err := t.Left.Eval(baseRoller)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +149,7 @@ func (t *Term) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
 		return nil, err
 	}
 	for _, r := range t.Right {
-		rightFactor, err := r.DFactor.Eval(roller)
+		rightFactor, err := r.Factor.Eval(baseRoller)
 		if err != nil {
 			return nil, err
 		}
@@ -168,9 +173,9 @@ func (t *Term) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
 	}, nil
 }
 
-func (e *Expression) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
+func (e *Expression) Eval(baseRoller *roller.BaseRoller) (*DNotationResult, error) {
 
-	l, err := e.Left.Eval(roller)
+	l, err := e.Left.Eval(baseRoller)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +187,7 @@ func (e *Expression) Eval(roller *roller.BaseRoller) (*DNotationResult, error) {
 	}
 
 	for _, r := range e.Right {
-		rightTerm, err := r.Term.Eval(roller)
+		rightTerm, err := r.Term.Eval(baseRoller)
 		if err != nil {
 			return nil, err
 		}
@@ -216,7 +221,7 @@ func getLexer() (*stateful.Definition, error) {
 
 }
 
-func NewBasicParser() (*BasicParser, error) {
+func NewDNotationParser() (*DNotationParser, error) {
 	lexer, err := getLexer()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build lexer")
@@ -225,17 +230,17 @@ func NewBasicParser() (*BasicParser, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build parser")
 	}
-	return &BasicParser{
+	return &DNotationParser{
 		roller: roller.New(),
 		parser: parser,
 	}, nil
 }
 
-func (p *BasicParser) GetEBNF() string {
+func (p *DNotationParser) GetEBNF() string {
 	return p.parser.String()
 }
 
-func (p *BasicParser) DoParse(input string) (*DNotationResult, error) {
+func (p *DNotationParser) DoParse(input string) (*DNotationResult, error) {
 	expr := &Expression{}
 	err := p.parser.ParseString("", input, expr)
 	if err != nil {

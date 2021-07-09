@@ -50,7 +50,7 @@ func init() {
 
 func runRoll(cmd *cobra.Command, args []string) error {
 	input := strings.Join(args, " ")
-	parser, err := parser.NewBasicParser()
+	parser, err := parser.NewDNotationParser()
 	if err != nil {
 		return errors.Wrap(err, "failed to create parser")
 	}

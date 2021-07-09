@@ -23,6 +23,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -37,8 +38,9 @@ var Cmd = &cobra.Command{
 }
 
 type Server struct {
-	config *config.Config
-	quotes *quotes.QuoteEngine
+	config          *config.Config
+	quotes          *quotes.QuoteEngine
+	dNotationParser *parser.DNotationParser
 	//roller Roller TODO
 }
 
@@ -61,9 +63,14 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "server failed to build quote engine")
 	}
+	dNotationParser, err := parser.NewDNotationParser()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build basic parser")
+	}
 	return &Server{
-		config: cfg,
-		quotes: qEngine,
+		config:          cfg,
+		quotes:          qEngine,
+		dNotationParser: dNotationParser,
 	}, nil
 }
 
@@ -81,6 +88,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 	}
 	dg.AddHandler(server.EchoQuote)
 	dg.AddHandler(server.EchoInsomniac)
+	dg.AddHandler(server.DispatchRollCommands)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 
 	dg.Open()

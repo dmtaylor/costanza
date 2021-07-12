@@ -11,7 +11,7 @@ type BaseRoller struct {
 	lock *sync.Mutex
 }
 
-func New() *BaseRoller {
+func NewBaseRoller() *BaseRoller {
 	return &BaseRoller{
 		rng:  rand.New(rand.NewSource(time.Now().UnixNano())),
 		lock: &sync.Mutex{},

@@ -8,7 +8,6 @@ import (
 
 type Roll interface {
 	Repr() string
-	Sum() int
 	Value() int
 }
 

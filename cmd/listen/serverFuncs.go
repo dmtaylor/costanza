@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/dmtaylor/costanza/internal/roller"
 )
 
 var startLateHours, endLateHours time.Time
@@ -58,6 +59,8 @@ func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.Mess
 	switch command[0] {
 	case "!roll":
 		s.doDNotationRoll(sess, m, strings.Join(command[1:], " "))
+	case "!srroll":
+		s.doShadowrunRoll(sess, m, strings.Join(command[1:], " "))
 	}
 }
 
@@ -83,6 +86,62 @@ func (s *Server) doDNotationRoll(sess *discordgo.Session, m *discordgo.MessageCr
 	)
 	if err != nil {
 		log.Printf("error sending message: %s\n", err)
+	}
+}
+
+func (s *Server) doShadowrunRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
+	rollCount, err := s.dNotationParser.DoParse(rollStr)
+	if err != nil {
+		log.Printf("error parsing string: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			fmt.Sprintf("I was unable to understand your roll \"%s\". Why must there always be a problem?", rollStr),
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	params := roller.GetSrParams()
+	result, err := s.thresholdRoller.DoThresholdRoll(rollCount.Value, 6, params)
+	if err != nil {
+		log.Printf("failed to do threshold roll: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to perform your roll. Why must there always be a problem?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	resultStr, err := result.Repr()
+	if err != nil {
+		log.Printf("failed to get string repr: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to say what your roll looks like. Why must there always be a problem?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	response := fmt.Sprintf("%s = %d", resultStr, result.Value())
+	_, err = sess.ChannelMessageSendReply(
+		m.ChannelID,
+		response,
+		m.Reference(),
+	)
+	if err != nil {
+		log.Printf("error sending message: %s\n", err)
+	}
+	if roller.IsSRCritFail(result) {
+		_ = response //TODO remove this
+		//TODO print critical failure/glitch message here
 	}
 }
 

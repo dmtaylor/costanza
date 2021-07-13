@@ -25,6 +25,7 @@ import (
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
+	"github.com/dmtaylor/costanza/internal/roller"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -41,6 +42,7 @@ type Server struct {
 	config          *config.Config
 	quotes          *quotes.QuoteEngine
 	dNotationParser *parser.DNotationParser
+	thresholdRoller *roller.ThresholdRoller
 	//roller Roller TODO
 }
 
@@ -71,6 +73,7 @@ func newServer() (*Server, error) {
 		config:          cfg,
 		quotes:          qEngine,
 		dNotationParser: dNotationParser,
+		thresholdRoller: roller.NewThresholdRoller(),
 	}, nil
 }
 

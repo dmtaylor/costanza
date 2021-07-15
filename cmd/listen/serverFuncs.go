@@ -139,9 +139,25 @@ func (s *Server) doShadowrunRoll(sess *discordgo.Session, m *discordgo.MessageCr
 	if err != nil {
 		log.Printf("error sending message: %s\n", err)
 	}
-	if roller.IsSRCritFail(result) {
-		_ = response //TODO remove this
-		//TODO print critical failure/glitch message here
+	switch roller.GetGlitchStatus(result) {
+	case roller.SrGlitch:
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"You glitched! I can't believe this! What was wrong with it? What didn't you like about it?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+	case roller.SrCritGlitch:
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"You critically glitched! I don't want hope. Hope is killing me. My dream is to become hopeless. When you're hopeless, you don't care, and when you don't care, that indifference makes you attractive.",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
 	}
 }
 

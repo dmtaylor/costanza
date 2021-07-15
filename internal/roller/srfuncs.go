@@ -1,5 +1,13 @@
 package roller
 
+const (
+	SrNoGlitch SrGlitchStatus = iota
+	SrGlitch
+	SrCritGlitch
+)
+
+type SrGlitchStatus int
+
 func GetSrParams() ThresholdParameters {
 	return ThresholdParameters{
 		passOn:    5,
@@ -7,8 +15,23 @@ func GetSrParams() ThresholdParameters {
 	}
 }
 
-// TODO helper function for critical failures
-func IsSRCritFail(roll ThresholdRoll) bool {
-	//TODO do this
-	return false
+func GetGlitchStatus(roll ThresholdRoll) SrGlitchStatus {
+	if isGlitch(roll) {
+		if roll.Value() == 0 {
+			return SrCritGlitch
+		} else {
+			return SrGlitch
+		}
+	}
+	return SrNoGlitch
+}
+
+func isGlitch(roll ThresholdRoll) bool {
+	ones := 0
+	for _, singleRoll := range roll.rolls {
+		if singleRoll.value == 1 {
+			ones++
+		}
+	}
+	return ones > len(roll.rolls)/2
 }

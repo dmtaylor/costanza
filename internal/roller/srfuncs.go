@@ -6,6 +6,8 @@ const (
 	SrCritGlitch
 )
 
+const SrDieSides = 6
+
 type SrGlitchStatus int
 
 func GetSrParams() ThresholdParameters {

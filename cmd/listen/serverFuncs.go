@@ -61,6 +61,8 @@ func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.Mess
 		s.doDNotationRoll(sess, m, strings.Join(command[1:], " "))
 	case "!srroll":
 		s.doShadowrunRoll(sess, m, strings.Join(command[1:], " "))
+	case "!wodroll":
+		s.doWodRoll(sess, m, command[1:])
 	}
 }
 
@@ -104,7 +106,7 @@ func (s *Server) doShadowrunRoll(sess *discordgo.Session, m *discordgo.MessageCr
 		return
 	}
 	params := roller.GetSrParams()
-	result, err := s.thresholdRoller.DoThresholdRoll(rollCount.Value, 6, params)
+	result, err := s.thresholdRoller.DoThresholdRoll(rollCount.Value, roller.SrDieSides, params)
 	if err != nil {
 		log.Printf("failed to do threshold roll: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -159,6 +161,107 @@ func (s *Server) doShadowrunRoll(sess *discordgo.Session, m *discordgo.MessageCr
 			log.Printf("error sending message: %s\n", err)
 		}
 	}
+}
+
+func (s *Server) doWodRoll(sess *discordgo.Session, m *discordgo.MessageCreate, tokens []string) {
+	params, isChance, rollStr, err := roller.GetWodRollParams(tokens)
+	if err != nil {
+		log.Printf("failed getting wod params: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to get the params for your roll. Why must there always be a problem?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	if isChance {
+		s.doWodChanceRoll(sess, m, params)
+		return
+	}
+	rollCount, err := s.dNotationParser.DoParse(rollStr)
+	if err != nil {
+		log.Printf("failed getting number or dice to roll: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to figure out the number of dice to roll. Life can be so confusing. I..I'm searching for answers, anywhere.",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	if rollCount.Value < 1 {
+		s.doWodChanceRoll(sess, m, params)
+		return
+	}
+	roll, err := s.thresholdRoller.DoThresholdRoll(rollCount.Value, roller.WodDieSides, params)
+	if err != nil {
+		log.Printf("failed doing wod threshold roll: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to complete your roll. Why must there always be a problem?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	rollResStr, err := roll.Repr()
+	if err != nil {
+		log.Printf("failed to get result string: %s\n", err)
+		return
+	}
+	response := fmt.Sprintf("%s = %d hits", rollResStr, roll.Value())
+	if roll.Value() == 0 {
+		response = response + "\nWould you like to critically fail?"
+	}
+	_, err = sess.ChannelMessageSendReply(
+		m.ChannelID,
+		response,
+		m.Reference(),
+	)
+	if err != nil {
+		log.Printf("error sending message: %s\n", err)
+	}
+}
+
+func (s *Server) doWodChanceRoll(sess *discordgo.Session, m *discordgo.MessageCreate, params roller.ThresholdParameters) {
+	roll, err := s.thresholdRoller.DoThresholdRoll(1, roller.WodDieSides, params)
+	if err != nil {
+		log.Printf("failed doing wod chance roll: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to complete your chance roll. Why must there always be a problem?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	rollResStr, err := roll.Repr()
+	if err != nil {
+		log.Printf("failed to get string representation: %s\n", err)
+		return
+	}
+	response := fmt.Sprintf("%s = %d hits", rollResStr, roll.Value())
+	if roll.Value() == 0 {
+		response = response + "\nYou critically failed! Radiating waves of pain."
+	}
+	_, err = sess.ChannelMessageSendReply(
+		m.ChannelID,
+		response,
+		m.Reference(),
+	)
+	if err != nil {
+		log.Printf("error sending message: %s\n", err)
+	}
+
 }
 
 func isAfterHours() bool {

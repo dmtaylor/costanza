@@ -29,6 +29,9 @@ The following behaviors are present in listen mode:
 - If Costanza is @-ed, it will respond with a random quote from a slightly curated list of George Costanza quotes
 - If a user posts between 12:30 AM & 6:00 AM & their user ID is included in `INSOMNIAC_IDS`, they get a gentle reminder to sleep
 - If a message is prefixed with `!roll`, the text following is parsed as a d-notation roll and evaluated.
+- If a message is prefixed with `!srroll`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a Shadowrun roll.
+- If a message is prefixed with `!wodroll`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a World of Darkness roll.
+    - The roll can be modified with the strings `8again`, `9again`, and `chance`. Rolls of < 1 dice are ran as chance rolls
 
 ## Environment Variables
 
@@ -41,7 +44,7 @@ You can use example.env as a skeleton.
 
 ## TODO
 - Figure out a good way to print chained rolls that shows intermediate results
-- Add threshold rollers for WoD, Shadowrun, etc
+- Add rolling types for other popular systems (Savage Worlds?)
 - Curate the quote list a bit more
 - Add more interesting responses to bad rolls
 

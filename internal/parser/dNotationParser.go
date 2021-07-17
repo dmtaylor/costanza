@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer/stateful"
@@ -16,6 +17,7 @@ type Operator int
 type DNotationParser struct {
 	roller *roller.BaseRoller
 	parser *participle.Parser
+	lock   sync.Mutex
 }
 
 type DNotationResult struct {
@@ -31,8 +33,20 @@ const (
 	OpRoll                 // 'd'
 )
 
-var operatorMap = map[string]Operator{"*": OpMul, "/": OpDiv, "+": OpAdd, "-": OpSub, "d": OpRoll}
-var reverseOperatorMap = map[Operator]string{OpMul: "*", OpDiv: "/", OpAdd: "+", OpSub: "-", OpRoll: "d"}
+var operatorMap = map[string]Operator{
+	"*": OpMul,
+	"/": OpDiv,
+	"+": OpAdd,
+	"-": OpSub,
+	"d": OpRoll,
+}
+var reverseOperatorMap = map[Operator]string{
+	OpMul:  "*",
+	OpDiv:  "/",
+	OpAdd:  "+",
+	OpSub:  "-",
+	OpRoll: "d",
+}
 
 func (o *Operator) Capture(s []string) error {
 	*o = operatorMap[s[0]]
@@ -242,7 +256,9 @@ func (p *DNotationParser) GetEBNF() string {
 
 func (p *DNotationParser) DoParse(input string) (*DNotationResult, error) {
 	expr := &Expression{}
+	p.lock.Lock()
 	err := p.parser.ParseString("", input, expr)
+	p.lock.Unlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse string")
 	}

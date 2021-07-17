@@ -228,7 +228,7 @@ func (e *Expression) Eval(baseRoller *roller.BaseRoller) (*DNotationResult, erro
 
 func getLexer() (*stateful.Definition, error) {
 	return stateful.NewSimple([]stateful.Rule{
-		{"Operator", `[*/+=d()]`, nil},
+		{"Operator", `[*/+\-d()]`, nil},
 		{"Number", `\d+`, nil},
 		{"whitespace", `\s+`, nil},
 	})

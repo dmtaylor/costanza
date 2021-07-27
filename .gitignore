@@ -2,3 +2,4 @@
 costanza
 *.swp
 .vscode
+db.sqlite3

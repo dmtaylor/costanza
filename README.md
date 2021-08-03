@@ -46,7 +46,6 @@ You can use example.env as a skeleton.
 - Figure out a good way to print chained rolls that shows intermediate results
 - Add rolling types for other popular systems (Savage Worlds?)
 - Curate the quote list a bit more
-- Update quote engine to use sqlite db rather than embedded quotes
 - Add more interesting responses to bad rolls
 
 ## Why

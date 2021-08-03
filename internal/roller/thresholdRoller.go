@@ -74,13 +74,15 @@ func (t *ThresholdRoller) DoThresholdRoll(count, sides int, params ThresholdPara
 
 	for i := 0; i < count; i++ {
 		rolling := true
+		wasExplode := false
 		for rolling {
 			roll := t.baseRoller.getRoll(sides)
 			rolling = roll >= params.explodeOn // keep going if the roll explodes
 			result.rolls = append(result.rolls, singleThresholdRoll{
 				roll,
-				rolling,
+				wasExplode,
 			})
+			wasExplode = rolling
 		}
 	}
 

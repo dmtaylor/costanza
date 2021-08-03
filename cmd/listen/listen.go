@@ -26,6 +26,7 @@ import (
 	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
 	"github.com/dmtaylor/costanza/internal/roller"
+	"github.com/dmtaylor/costanza/internal/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -43,6 +44,7 @@ type Server struct {
 	quotes          *quotes.QuoteEngine
 	dNotationParser *parser.DNotationParser
 	thresholdRoller *roller.ThresholdRoller
+	connPool        *util.SqliteConnectionPool
 	//roller Roller TODO
 }
 
@@ -61,7 +63,11 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load cfgs while building server")
 	}
-	qEngine, err := quotes.NewQuoteEngine()
+	pool, err := util.NewSqliteConnectionPool(cfg.DbConnectionStr, 5)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build connection pool")
+	}
+	qEngine, err := quotes.NewQuoteEngine(pool)
 	if err != nil {
 		return nil, errors.Wrap(err, "server failed to build quote engine")
 	}
@@ -74,6 +80,7 @@ func newServer() (*Server, error) {
 		quotes:          qEngine,
 		dNotationParser: dNotationParser,
 		thresholdRoller: roller.NewThresholdRoller(),
+		connPool:        pool,
 	}, nil
 }
 

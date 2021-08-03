@@ -8,12 +8,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+const DEFAULT_CONNECTION_STR = "file:db.sqlite3?cache=shared&mode=ro"
+
 var OverwriteDiscordToken string
 var OverwriteInsomniacIds []string
+var OverwriteDbConnectionStr string
 
 type Config struct {
-	DiscordToken string
-	InsomniacIds []string
+	DiscordToken    string
+	InsomniacIds    []string
+	DbConnectionStr string
 }
 
 func Load() (*Config, error) {
@@ -36,9 +40,17 @@ func Load() (*Config, error) {
 		insomniacIds = strings.Split(os.Getenv("INSOMNIAC_IDS"), ",")
 	}
 
+	var dbString string
+	if OverwriteDbConnectionStr != "" {
+		dbString = OverwriteDbConnectionStr
+	} else {
+		dbString = DEFAULT_CONNECTION_STR
+	}
+
 	cfg := Config{
-		DiscordToken: discordtoken,
-		InsomniacIds: insomniacIds,
+		DiscordToken:    discordtoken,
+		InsomniacIds:    insomniacIds,
+		DbConnectionStr: dbString,
 	}
 	return &cfg, nil
 }

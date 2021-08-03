@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"github.com/dmtaylor/costanza/cmd/listen"
+	"github.com/dmtaylor/costanza/cmd/quoteCmd"
 	"github.com/dmtaylor/costanza/cmd/register"
 	"github.com/dmtaylor/costanza/cmd/roll"
 	"github.com/dmtaylor/costanza/config"
@@ -42,5 +43,12 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().StringVarP(&config.OverwriteDiscordToken, "token", "t", "", "Overwrite bot token")
-	rootCmd.AddCommand(listen.Cmd, roll.Cmd, register.Cmd)
+	rootCmd.PersistentFlags().StringVarP(
+		&config.OverwriteDbConnectionStr,
+		"connectionStr",
+		"c",
+		"",
+		"Overwrite default sqlite db",
+	)
+	rootCmd.AddCommand(listen.Cmd, roll.Cmd, register.Cmd, quoteCmd.Cmd)
 }

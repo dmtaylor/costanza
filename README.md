@@ -45,6 +45,7 @@ You can use example.env as a skeleton.
 ## TODO
 - Figure out a good way to print chained rolls that shows intermediate results
 - Add rolling types for other popular systems (Savage Worlds?)
+    - Dark Heresy/FF 40k
 - Curate the quote list a bit more
 - Add more interesting responses to bad rolls
 

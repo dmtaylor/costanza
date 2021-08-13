@@ -68,6 +68,9 @@ func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.Mess
 		return
 	}
 	command := strings.Fields(m.Message.Content)
+	if len(command) < 1 {
+		return
+	}
 
 	switch command[0] {
 	case "!roll":

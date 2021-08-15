@@ -43,9 +43,10 @@ To run this project, you will need to add the following environment variables to
 You can use example.env as a skeleton.
 
 ## TODO
-- Figure out a good way to print chained rolls that shows intermediate results
+- Add command to dynamically add & remove people from the insomniac list during runtime
 - Add rolling types for other popular systems (Savage Worlds?)
     - Dark Heresy/FF 40k
+- Figure out a good way to print chained rolls that shows intermediate results
 - Curate the quote list a bit more
 - Add more interesting responses to bad rolls
 

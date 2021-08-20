@@ -77,6 +77,8 @@ func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.Mess
 		s.doShadowrunRoll(sess, m, strings.Join(command[1:], " "))
 	case "!wodroll":
 		s.doWodRoll(sess, m, command[1:])
+	case "!dhtest":
+		s.doDHTestRoll(sess, m, strings.Join(command[1:], " "))
 	}
 }
 
@@ -276,6 +278,52 @@ func (s *Server) doWodChanceRoll(sess *discordgo.Session, m *discordgo.MessageCr
 		log.Printf("error sending message: %s\n", err)
 	}
 
+}
+
+func (s *Server) doDHTestRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
+	threshold, err := s.dNotationParser.DoParse(rollStr)
+	if err != nil {
+		log.Printf("error parsing string: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			fmt.Sprintf("I was unable to understand your roll \"%s\". Why must there always be a problem?", rollStr),
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	roll, err := s.dNotationParser.DoParse("1d100")
+	if err != nil {
+		log.Printf("error doing d100 roll: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to execute the roll. Why must there always be a problem?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	var result string
+	if roll.Value > threshold.Value {
+		degrees := (roll.Value - threshold.Value) / 10
+		result = fmt.Sprintf("You Fail with %d degrees", degrees)
+	} else {
+		degrees := (threshold.Value - roll.Value) / 10
+		result = fmt.Sprintf("You Succeed with %d degrees", degrees)
+	}
+	response := fmt.Sprintf("Rolled %s: %s", roll.StrValue, result)
+	_, err = sess.ChannelMessageSendReply(
+		m.ChannelID,
+		response,
+		m.Reference(),
+	)
+	if err != nil {
+		log.Printf("error sending message: %s\n", err)
+	}
 }
 
 func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member) bool {

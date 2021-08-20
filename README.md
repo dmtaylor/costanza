@@ -27,7 +27,7 @@ Costanza has the following subcommands:
 
 The following behaviors are present in listen mode:
 - If Costanza is @-ed, it will respond with a random quote from a slightly curated list of George Costanza quotes
-- If a user posts between 12:30 AM & 6:00 AM & their user ID is included in `INSOMNIAC_IDS`, they get a gentle reminder to sleep
+- If a user posts between 12:30 AM & 6:00 AM & their user ID is included in `INSOMNIAC_IDS` or they have a role listed in `INSOMNIAC_ROLES`, they get a gentle reminder to sleep
 - If a message is prefixed with `!roll`, the text following is parsed as a d-notation roll and evaluated.
 - If a message is prefixed with `!srroll`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a Shadowrun roll.
 - If a message is prefixed with `!wodroll`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a World of Darkness roll.
@@ -43,7 +43,6 @@ To run this project, you will need to add the following environment variables to
 You can use example.env as a skeleton.
 
 ## TODO
-- Add command to dynamically add & remove people from the insomniac list during runtime
 - Add rolling types for other popular systems (Savage Worlds?)
     - Dark Heresy/FF 40k
 - Figure out a good way to print chained rolls that shows intermediate results

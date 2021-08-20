@@ -46,19 +46,17 @@ func (s *Server) EchoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 		return
 	}
 
-	for _, insomniac := range s.config.InsomniacIds {
-		if m.Author.ID == insomniac && isAfterHours() {
-			_, err := sess.ChannelMessageSendReply(
-				m.ChannelID,
-				fmt.Sprintf("%s All right. That's enough for today. You're tired. Get some sleep. I'll see you first thing in the morning.",
-					m.Author.Mention()),
-				m.Reference(),
-			)
-			if err != nil {
-				log.Printf("error sending message: %s\n", err)
-			}
-			return
+	if s.isInsomniacUser(m.Author, m.Member) && isAfterHours() {
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			fmt.Sprintf("%s All right. That's enough for today. You're tired. Get some sleep. I'll see you first thing in the morning.",
+				m.Author.Mention()),
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
 		}
+		return
 	}
 
 }
@@ -277,6 +275,28 @@ func (s *Server) doWodChanceRoll(sess *discordgo.Session, m *discordgo.MessageCr
 	if err != nil {
 		log.Printf("error sending message: %s\n", err)
 	}
+
+}
+
+func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member) bool {
+	if user == nil || member == nil {
+		return false
+	}
+
+	for _, uid := range s.config.InsomniacIds {
+		if user.ID == uid {
+			return true
+		}
+	}
+
+	for _, role := range s.config.InsomniacRoles {
+		for _, urole := range member.Roles {
+			if role == urole {
+				return true
+			}
+		}
+	}
+	return false
 
 }
 

@@ -12,11 +12,13 @@ const DEFAULT_CONNECTION_STR = "file:db.sqlite3?cache=shared&mode=ro"
 
 var OverwriteDiscordToken string
 var OverwriteInsomniacIds []string
+var OverwriteInsomniacRoles []string
 var OverwriteDbConnectionStr string
 
 type Config struct {
 	DiscordToken    string
 	InsomniacIds    []string
+	InsomniacRoles  []string
 	DbConnectionStr string
 }
 
@@ -40,6 +42,13 @@ func Load() (*Config, error) {
 		insomniacIds = strings.Split(os.Getenv("INSOMNIAC_IDS"), ",")
 	}
 
+	var insomniacRoles []string
+	if OverwriteInsomniacRoles != nil {
+		insomniacRoles = OverwriteInsomniacRoles
+	} else {
+		insomniacRoles = strings.Split(os.Getenv("INSOMNIAC_ROLES"), ",")
+	}
+
 	var dbString string
 	if OverwriteDbConnectionStr != "" {
 		dbString = OverwriteDbConnectionStr
@@ -50,6 +59,7 @@ func Load() (*Config, error) {
 	cfg := Config{
 		DiscordToken:    discordtoken,
 		InsomniacIds:    insomniacIds,
+		InsomniacRoles:  insomniacRoles,
 		DbConnectionStr: dbString,
 	}
 	return &cfg, nil

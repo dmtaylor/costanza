@@ -56,6 +56,13 @@ func init() {
 		nil,
 		"Overwrite insomniac ids for bedtime reminders",
 	)
+	Cmd.PersistentFlags().StringSliceVarP(
+		&config.OverwriteInsomniacRoles,
+		"insomniacRoles",
+		"r",
+		nil,
+		"Overwrite insomniac roles for bedtime reminders",
+	)
 }
 
 func newServer() (*Server, error) {

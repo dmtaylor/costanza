@@ -5,6 +5,26 @@ services:
     image: costanza
     restart: unless-stopped
     env_file: .env
+    environment:
+      DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza?charset=UTF8
     build:
       context: .
       dockerfile: ./Dockerfile
+    depends_on:
+      db: 
+        condition: service_healthy
+  db:
+    image: 'postgres:latest'
+    ports:
+      - 54320:5432
+    environment:
+      POSTGRES_USER: costanza
+      POSTGRES_PASSWORD: myvoiceismypassportverifyme
+      POSTGRES_DB: costanza
+    volumes:
+      - ./db_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "costanza"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

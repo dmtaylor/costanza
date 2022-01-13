@@ -1,4 +1,4 @@
-version: '3.4'
+version: '3'
 
 services:
   costanza:
@@ -13,6 +13,8 @@ services:
     depends_on:
       db: 
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
   db:
     image: 'postgres:latest'
     ports:
@@ -28,3 +30,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  migrate:
+    image: 'migrate/migrate'
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/database
+    command:
+      [ "-path", "/database", "-database", "postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza?sslmode=disable", "up" ]

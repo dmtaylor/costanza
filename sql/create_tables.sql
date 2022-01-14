@@ -1,4 +1,0 @@
-CREATE TABLE quotes (
-    id INTEGER PRIMARY KEY,
-    quote TEXT NOT NULL
-);

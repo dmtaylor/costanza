@@ -1,6 +1,7 @@
 package listen
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -13,13 +14,14 @@ import (
 var startLateHours, endLateHours time.Time
 
 func (s *Server) EchoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) {
+	ctx := context.Background()
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
 
 	for _, mentionedUser := range m.Mentions {
 		if mentionedUser.ID == sess.State.User.ID {
-			quote, err := s.quotes.GetQuoteSql()
+			quote, err := s.quotes.GetQuoteSql(ctx)
 			if err != nil {
 				log.Printf("failed to get quote: %s\n", err)
 				_, err := sess.ChannelMessageSendReply(

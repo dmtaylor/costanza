@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza?charset=UTF8
+      DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
     build:
       context: .
       dockerfile: ./Dockerfile
@@ -23,6 +23,7 @@ services:
       POSTGRES_USER: costanza
       POSTGRES_PASSWORD: myvoiceismypassportverifyme
       POSTGRES_DB: costanza
+    restart: always
     volumes:
       - ./db_data:/var/lib/postgresql/data/
     healthcheck:

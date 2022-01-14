@@ -16,11 +16,12 @@ limitations under the License.
 package quoteCmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/quotes"
-	"github.com/dmtaylor/costanza/internal/util"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -50,7 +51,7 @@ func runQuote(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to load config")
 	}
-	pool, err := util.NewSqliteConnectionPool(cfg.DbConnectionStr, 5)
+	pool, err := pgxpool.Connect(context.Background(), cfg.DbConnectionStr)
 	if err != nil {
 		return errors.Wrap(err, "failed to build conn pool")
 	}
@@ -59,7 +60,7 @@ func runQuote(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "failed to build engine")
 	}
 	for i := uint(0); i < n; i++ {
-		quote, err := engine.GetQuoteSql()
+		quote, err := engine.GetQuoteSql(context.Background())
 		if err != nil {
 			return errors.Wrap(err, "failed to get quote")
 		}

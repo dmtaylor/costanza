@@ -53,7 +53,7 @@ func Load() (*Config, error) {
 	if OverwriteDbConnectionStr != "" {
 		dbString = OverwriteDbConnectionStr
 	} else {
-		dbString = DEFAULT_CONNECTION_STR
+		dbString = os.Getenv("DB_URL")
 	}
 
 	cfg := Config{

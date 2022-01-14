@@ -16,6 +16,7 @@ limitations under the License.
 package listen
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -26,7 +27,7 @@ import (
 	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
 	"github.com/dmtaylor/costanza/internal/roller"
-	"github.com/dmtaylor/costanza/internal/util"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -44,7 +45,7 @@ type Server struct {
 	quotes          *quotes.QuoteEngine
 	dNotationParser *parser.DNotationParser
 	thresholdRoller *roller.ThresholdRoller
-	connPool        *util.SqliteConnectionPool
+	connPool        *pgxpool.Pool
 	//roller Roller TODO
 }
 
@@ -70,7 +71,8 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load cfgs while building server")
 	}
-	pool, err := util.NewSqliteConnectionPool(cfg.DbConnectionStr, 5)
+	// pool, err := util.NewSqliteConnectionPool(cfg.DbConnectionStr, 5)
+	pool, err := pgxpool.Connect(context.Background(), cfg.DbConnectionStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build connection pool")
 	}
@@ -97,6 +99,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 		log.Printf("failed to build state")
 		return err
 	}
+	defer server.connPool.Close()
 
 	dg, err := discordgo.New("Bot " + server.config.DiscordToken)
 	if err != nil {

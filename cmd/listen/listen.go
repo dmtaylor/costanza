@@ -106,6 +106,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 		log.Printf("failed to start bot: %s\n", err)
 		return err
 	}
+	dg.AddHandler(server.Help)
 	dg.AddHandler(server.EchoQuote)
 	dg.AddHandler(server.EchoInsomniac)
 	dg.AddHandler(server.DispatchRollCommands)

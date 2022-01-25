@@ -2,7 +2,6 @@ package quotes
 
 import (
 	"context"
-	_ "embed"
 	"math/rand"
 	"sync"
 	"time"

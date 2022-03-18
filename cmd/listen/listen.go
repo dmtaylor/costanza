@@ -46,7 +46,6 @@ type Server struct {
 	dNotationParser *parser.DNotationParser
 	thresholdRoller *roller.ThresholdRoller
 	connPool        *pgxpool.Pool
-	//roller Roller TODO
 }
 
 func init() {

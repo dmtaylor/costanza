@@ -1,12 +1,12 @@
 module github.com/dmtaylor/costanza
 
-go 1.17
+go 1.19
 
 require (
 	github.com/alecthomas/participle/v2 v2.0.0-alpha6
 	github.com/bwmarrin/discordgo v0.23.3-0.20210627161652-421e14965030
+	github.com/jackc/pgx/v4 v4.14.1
 	github.com/joho/godotenv v1.3.0
-	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.2.1
 )
@@ -21,7 +21,6 @@ require (
 	github.com/jackc/pgproto3/v2 v2.2.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/jackc/pgtype v1.9.1 // indirect
-	github.com/jackc/pgx/v4 v4.14.1 // indirect
 	github.com/jackc/puddle v1.2.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect

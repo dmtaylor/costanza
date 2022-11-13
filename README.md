@@ -39,6 +39,7 @@ The following behaviors are present in listen mode:
     - The roll can be modified with the strings `8again`, `9again`, and `chance`. Rolls of < 1 dice are ran as chance rolls
 - If a message is prefixed with `!dhtest`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a Dark Heresy/Fantasy
 Flight Warhammer 40k RPG skill test (i.e. over or under 1d100)
+- If a message is prefixed with `!chelp`, brief usage details are sent.
 
 ## Environment Variables
 
@@ -55,10 +56,10 @@ You can use example.env as a skeleton.
 make sure the current user has read permission on the directory.
 
 ## TODO
-- Add help command
 - Add initiative tracking system
 - Add rolling types for other popular systems (Savage Worlds?)
     - Dark Heresy/FF 40k damage rolls
+    - Paranoia?
 - Figure out a good way to print chained rolls that shows intermediate results
 - Curate the quote list a bit more
 - Add more interesting responses to bad rolls

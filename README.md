@@ -56,6 +56,7 @@ You can use example.env as a skeleton.
 make sure the current user has read permission on the directory.
 
 ## TODO
+- Support roll commands on DMs for private rolls
 - Add initiative tracking system
 - Add rolling types for other popular systems (Savage Worlds?)
     - Dark Heresy/FF 40k damage rolls

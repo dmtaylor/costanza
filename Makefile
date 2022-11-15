@@ -19,4 +19,8 @@ docker-build:
 docker-run:
 	docker-compose up
 
-.PHONY: all clean rebuild docker-build docker-run
+docker-restart:
+	docker-compose build --no-cache
+	docker-compose up --build --force-recreate --no-deps -d
+
+.PHONY: all clean rebuild docker-build docker-run docker-restart

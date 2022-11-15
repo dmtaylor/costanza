@@ -2,4 +2,5 @@
 costanza
 *.swp
 .vscode
+.idea
 db_data

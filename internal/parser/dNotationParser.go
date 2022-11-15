@@ -7,16 +7,17 @@ import (
 	"sync"
 
 	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer/stateful"
-	"github.com/dmtaylor/costanza/internal/roller"
+	"github.com/alecthomas/participle/v2/lexer"
 	"github.com/pkg/errors"
+
+	"github.com/dmtaylor/costanza/internal/roller"
 )
 
 type Operator int
 
 type DNotationParser struct {
 	roller *roller.BaseRoller
-	parser *participle.Parser
+	parser *participle.Parser[Expression]
 	lock   sync.Mutex
 }
 
@@ -226,21 +227,20 @@ func (e *Expression) Eval(baseRoller *roller.BaseRoller) (*DNotationResult, erro
 	}, nil
 }
 
-func getLexer() (*stateful.Definition, error) {
-	return stateful.NewSimple([]stateful.Rule{
-		{"Operator", `[*/+\-d()]`, nil},
-		{"Number", `\d+`, nil},
-		{"whitespace", `\s+`, nil},
+func getLexer() (*lexer.StatefulDefinition, error) {
+	return lexer.NewSimple([]lexer.SimpleRule{
+		{"Operator", `[*/+\-d()]`},
+		{"Number", `\d+`},
+		{"whitespace", `\s+`},
 	})
-
 }
 
 func NewDNotationParser() (*DNotationParser, error) {
-	lexer, err := getLexer()
+	localLexer, err := getLexer()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build lexer")
 	}
-	parser, err := participle.Build(&Expression{}, participle.Lexer(lexer))
+	parser, err := participle.Build[Expression](participle.Lexer(localLexer))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build parser")
 	}
@@ -255,9 +255,8 @@ func (p *DNotationParser) GetEBNF() string {
 }
 
 func (p *DNotationParser) DoParse(input string) (*DNotationResult, error) {
-	expr := &Expression{}
 	p.lock.Lock()
-	err := p.parser.ParseString("", input, expr)
+	expr, err := p.parser.ParseString("", input)
 	p.lock.Unlock()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse string")

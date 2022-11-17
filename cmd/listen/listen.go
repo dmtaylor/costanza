@@ -1,18 +1,4 @@
-/*
-Copyright © 2021 David Taylor <dmtaylor2011@gmail.com>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Package listen Command functions for the `listen` command
 package listen
 
 import (
@@ -23,13 +9,14 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
+
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
 	"github.com/dmtaylor/costanza/internal/roller"
-	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 )
 
 // listenCmd represents the listen command
@@ -71,7 +58,6 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load cfgs while building server")
 	}
-	// pool, err := util.NewSqliteConnectionPool(cfg.DbConnectionStr, 5)
 	pool, err := pgxpool.Connect(context.Background(), cfg.DbConnectionStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build connection pool")
@@ -110,9 +96,13 @@ func runListen(cmd *cobra.Command, args []string) error {
 	dg.AddHandler(server.EchoQuote)
 	dg.AddHandler(server.EchoInsomniac)
 	dg.AddHandler(server.DispatchRollCommands)
-	dg.Identify.Intents = discordgo.IntentsGuildMessages
+	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages
 
-	dg.Open()
+	err = dg.Open()
+	if err != nil {
+		log.Printf("failed to open bot connection: %s\n", err)
+		return err
+	}
 	defer dg.Close()
 	log.Printf("Bot started, CTL-C to quit")
 	sc := make(chan os.Signal, 1)

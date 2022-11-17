@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+
 	"github.com/dmtaylor/costanza/internal/roller"
 )
 
@@ -54,25 +55,29 @@ func (s *Server) EchoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) 
 
 	for _, mentionedUser := range m.Mentions {
 		if mentionedUser.ID == sess.State.User.ID {
-			quote, err := s.quotes.GetQuoteSql(ctx)
-			if err != nil {
-				log.Printf("failed to get quote: %s\n", err)
-				_, err := sess.ChannelMessageSendReply(
-					m.ChannelID,
-					"I was unable to get a quote. Why must there always be a problem?",
-					m.Reference(),
-				)
-				if err != nil {
-					log.Printf("error sending message: %s\n", err)
-				}
-				return
-			}
-			_, err = sess.ChannelMessageSendReply(m.ChannelID, quote, m.Reference())
-			if err != nil {
-				log.Printf("error sending message: %s\n", err)
-			}
+			s.sendQuote(ctx, sess, m)
 			return
 		}
+	}
+}
+
+func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
+	quote, err := s.quotes.GetQuoteSql(ctx)
+	if err != nil {
+		log.Printf("failed to get quote: %s\n", err)
+		_, err := sess.ChannelMessageSendReply(
+			m.ChannelID,
+			"I was unable to get a quote. Why must there always be a problem?",
+			m.Reference(),
+		)
+		if err != nil {
+			log.Printf("error sending message: %s\n", err)
+		}
+		return
+	}
+	_, err = sess.ChannelMessageSendReply(m.ChannelID, quote, m.Reference())
+	if err != nil {
+		log.Printf("error sending message: %s\n", err)
 	}
 }
 

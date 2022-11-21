@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"regexp"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -28,12 +29,12 @@ var Cmd = &cobra.Command{
 }
 
 type Server struct {
-	config          *config.Config
-	quotes          *quotes.QuoteEngine
-	dNotationParser *parser.DNotationParser
-	thresholdRoller *roller.ThresholdRoller
-	connPool        *pgxpool.Pool
-	//roller Roller TODO
+	config           *config.Config
+	quotes           *quotes.QuoteEngine
+	dNotationParser  *parser.DNotationParser
+	thresholdRoller  *roller.ThresholdRoller
+	connPool         *pgxpool.Pool
+	dailyWinPatterns []*regexp.Regexp
 }
 
 func init() {
@@ -70,12 +71,34 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build basic parser")
 	}
+
+	framedPattern, err := regexp.Compile(`Framed\s+#\d+\s+🎥 🟩 ⬛ ⬛ ⬛ ⬛ ⬛`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compile framed pattern")
+	}
+
+	tradlePattern, err := regexp.Compile(`#Tradle\s#\d+\s1/6`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compile tradle pattern")
+	}
+
+	wordlePattern, err := regexp.Compile(`#Wordle\s#?\d+\s+1/6`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compile wordle pattern")
+	}
+
+	heardlePattern, err := regexp.Compile(`#Heardle\s#\d+\s+🔊🟩⬜⬜⬜⬜⬜\n`)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to compile heardle pattern")
+	}
+
 	return &Server{
-		config:          cfg,
-		quotes:          qEngine,
-		dNotationParser: dNotationParser,
-		thresholdRoller: roller.NewThresholdRoller(),
-		connPool:        pool,
+		config:           cfg,
+		quotes:           qEngine,
+		dNotationParser:  dNotationParser,
+		thresholdRoller:  roller.NewThresholdRoller(),
+		connPool:         pool,
+		dailyWinPatterns: []*regexp.Regexp{framedPattern, tradlePattern, wordlePattern, heardlePattern},
 	}, nil
 }
 
@@ -96,6 +119,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 	dg.AddHandler(server.EchoQuote)
 	dg.AddHandler(server.EchoInsomniac)
 	dg.AddHandler(server.DispatchRollCommands)
+	dg.AddHandler(server.DailyWinReact)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages
 
 	err = dg.Open()

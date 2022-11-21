@@ -388,6 +388,22 @@ func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member)
 
 }
 
+func (s *Server) DailyWinReact(sess *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.ID == sess.State.User.ID {
+		return
+	}
+
+	for _, pattern := range s.dailyWinPatterns {
+		if pattern.MatchString(m.Message.Content) {
+			err := sess.MessageReactionAdd(m.ChannelID, m.Message.ID, "💯")
+			if err != nil {
+				log.Printf("error adding reaction: %s\n", err)
+			}
+			return
+		}
+	}
+}
+
 func isAfterHours() bool {
 	var err error
 	if startLateHours.IsZero() {

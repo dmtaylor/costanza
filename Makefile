@@ -13,14 +13,17 @@ clean:
 
 rebuild: clean all
 
-docker-build:
+docker-build: tests
 	docker-compose build
 
-docker-run:
+docker-run: tests
 	docker-compose up
 
-docker-restart:
+docker-restart: tests
 	docker-compose build --no-cache
 	docker-compose up --build --force-recreate --no-deps -d
 
-.PHONY: all clean rebuild docker-build docker-run docker-restart
+tests: all
+	go test -v ./...
+
+.PHONY: all clean rebuild docker-build docker-run docker-restart tests

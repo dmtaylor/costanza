@@ -27,6 +27,7 @@ Costanza commands:
 ` +
 	"```"
 
+// Help handler function for help messages
 func (s *Server) Help(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
@@ -47,6 +48,7 @@ func (s *Server) Help(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+// EchoQuote handler function for sending George Costanza quotes
 func (s *Server) EchoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	ctx := context.Background()
 	if m.Author.ID == sess.State.User.ID {
@@ -101,6 +103,9 @@ func (s *Server) EchoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 
 }
 
+// DispatchRollCommands Main entrypoint into handling roll commands. Reads the first word of the message content
+// and calls the appropriate method for performing a roll. Update this to add additional message prefixes for additional
+// roll types.
 func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
@@ -378,8 +383,8 @@ func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member)
 	}
 
 	for _, role := range s.config.InsomniacRoles {
-		for _, urole := range member.Roles {
-			if role == urole {
+		for _, userRole := range member.Roles {
+			if role == userRole {
 				return true
 			}
 		}

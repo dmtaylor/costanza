@@ -1,14 +1,13 @@
+// Package config manages loading config variables from environment
 package config
 
 import (
+	"log"
 	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
 )
-
-const DEFAULT_CONNECTION_STR = "file:db.sqlite3?cache=shared&mode=ro"
 
 var OverwriteDiscordToken string
 var OverwriteInsomniacIds []string
@@ -25,7 +24,7 @@ type Config struct {
 func Load() (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load dotenv")
+		log.Printf("failed to load dotenv: %v. Continuing...\n", err)
 	}
 
 	var discordtoken string

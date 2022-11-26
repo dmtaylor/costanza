@@ -20,12 +20,13 @@ import (
 	"github.com/dmtaylor/costanza/internal/roller"
 )
 
-// listenCmd represents the listen command
+// Cmd listenCmd represents the listen command
 var Cmd = &cobra.Command{
-	Use:   "listen",
-	Short: "Start bot listening on server",
-	Long:  `Start Bot & begin processing incoming events`,
-	RunE:  runListen,
+	Use:     "listen",
+	Short:   "Start bot listening on server",
+	Long:    `Start Bot & begin processing incoming events`,
+	RunE:    runListen,
+	Example: "costanza listen -i \"1234,2345\" -r \"9876,8765\"",
 }
 
 type Server struct {
@@ -77,7 +78,7 @@ func newServer() (*Server, error) {
 		return nil, errors.Wrap(err, "failed to compile framed pattern")
 	}
 
-	tradlePattern, err := regexp.Compile(`#Tradle\s#\d+\s1/6`)
+	tradlePattern, err := regexp.Compile(`#Tradle\s.*#\d+\s1/6`)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile tradle pattern")
 	}
@@ -127,11 +128,14 @@ func runListen(cmd *cobra.Command, args []string) error {
 		log.Printf("failed to open bot connection: %s\n", err)
 		return err
 	}
-	defer dg.Close()
+	var closeErr error = nil
+	defer func() {
+		closeErr = dg.Close()
+	}()
 	log.Printf("Bot started, CTL-C to quit")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
-	return nil
+	return closeErr
 }

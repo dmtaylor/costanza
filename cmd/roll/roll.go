@@ -1,18 +1,3 @@
-/*
-Copyright © 2021 David Taylor <dmtaylor2011@gmail.com>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package roll
 
 import (
@@ -20,14 +5,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
+	"github.com/dmtaylor/costanza/internal/parser"
 )
 
 var printEBNF bool
 
-// rollCmd represents the roll command
+// Cmd rollCmd represents the roll command
 var Cmd = &cobra.Command{
 	Use:   "roll",
 	Short: "Parse & do roll",
@@ -50,15 +36,15 @@ func init() {
 
 func runRoll(cmd *cobra.Command, args []string) error {
 	input := strings.Join(args, " ")
-	parser, err := parser.NewDNotationParser()
+	rollParser, err := parser.NewDNotationParser()
 	if err != nil {
-		return errors.Wrap(err, "failed to create parser")
+		return errors.Wrap(err, "failed to create rollParser")
 	}
 	if printEBNF {
 		fmt.Printf("EBNF:\n")
-		fmt.Printf("%s\n", parser.GetEBNF())
+		fmt.Printf("%s\n", rollParser.GetEBNF())
 	} else {
-		results, err := parser.DoParse(input)
+		results, err := rollParser.DoParse(input)
 		if err != nil {
 			return errors.Wrap(err, "failed to do parse")
 		}

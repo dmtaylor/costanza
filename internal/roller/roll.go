@@ -19,7 +19,7 @@ func (r *BaseRoll) Repr() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, err = builder.WriteString(strings.Join(util.IntSliceToStr([]int(*r)), " + "))
+	_, err = builder.WriteString(strings.Join(util.IntSliceToStr(*r), " + "))
 	if err != nil {
 		return "", nil
 	}

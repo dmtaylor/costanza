@@ -2,7 +2,6 @@ package roller
 
 import (
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -14,13 +13,6 @@ type singleThresholdRoll struct {
 type ThresholdParameters struct {
 	passOn    int
 	explodeOn int
-}
-
-func NewThresholdParameters() ThresholdParameters {
-	return ThresholdParameters{
-		math.MaxInt32,
-		math.MaxInt32,
-	}
 }
 
 type ThresholdRoll struct {

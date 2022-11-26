@@ -1,10 +1,20 @@
-FROM golang:1.19
+FROM golang:1.19 AS build
 
 WORKDIR /go/src/app
 COPY . .
 
-RUN touch .env
 RUN go get -d -v ./...
 RUN go build -v -o costanza .
 
-CMD [ "./costanza", "listen" ]
+FROM debian:stable-slim
+WORKDIR /
+
+RUN apt-get update
+RUN apt-get install -y ca-certificates
+
+
+RUN useradd --create-home --shell /bin/bash costanza
+USER costanza:costanza
+COPY --from=build /go/src/app/costanza /home/costanza/costanza
+
+ENTRYPOINT [ "/home/costanza/costanza", "listen" ]

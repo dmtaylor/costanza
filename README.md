@@ -6,7 +6,7 @@ A discord bot implementing quote responses and a dice notation roller & expressi
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/dmtaylor/costanza)
 [![Apache 2](https://img.shields.io/github/license/dmtaylor/costanza)](https://github.com/dmtaylor/costanza/LICENSE)
 ![Release](https://img.shields.io/github/v/release/dmtaylor/costanza?include_prereleases&sort=semver)
-![Build](https://img.shields.io/github/workflow/status/dmtaylor/costanza/go)
+![Build](https://img.shields.io/github/workflow/status/dmtaylor/costanza/go-build-test)
 
 ## Getting started
 This project requires [go](https://golang.org/) and postgres.

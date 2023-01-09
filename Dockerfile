@@ -12,6 +12,8 @@ WORKDIR /
 RUN apt-get update
 RUN apt-get install -y ca-certificates
 
+RUN mkdir /etc/costanza # directory for config file
+RUN chmod +r /etc/costanza
 
 RUN useradd --create-home --shell /bin/bash costanza
 USER costanza:costanza

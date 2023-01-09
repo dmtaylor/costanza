@@ -4,3 +4,4 @@ costanza
 .vscode
 .idea
 db_data
+config.toml

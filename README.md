@@ -6,13 +6,13 @@ A discord bot implementing quote responses and a dice notation roller & expressi
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/dmtaylor/costanza)
 [![Apache 2](https://img.shields.io/github/license/dmtaylor/costanza)](https://github.com/dmtaylor/costanza/LICENSE)
 ![Release](https://img.shields.io/github/v/release/dmtaylor/costanza?include_prereleases&sort=semver)
-![Build](https://img.shields.io/github/workflow/status/dmtaylor/costanza/go-build-test)
+![Build](https://img.shields.io/github/actions/workflow/status/dmtaylor/costanza/go.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/dmtaylor/costanza)](https://goreportcard.com/report/github.com/dmtaylor/costanza)
 
 ## Getting started
 This project requires [go](https://golang.org/) and postgres.
 
-To run locally, run the commands after setting up `.env` file and postgres:
+To run locally, run the commands after setting up `config.toml` file and postgres:
 ```
 $ go get
 $ go build
@@ -38,26 +38,27 @@ The following behaviors are present in listen mode:
 - If Costanza is @-ed, it will respond with a random quote from a slightly curated list of George Costanza quotes
 - If a user posts between 12:30 AM & 6:00 AM & their user ID is included in `INSOMNIAC_IDS` or they have a role listed in `INSOMNIAC_ROLES`, they get a gentle reminder to sleep
 - If a message is prefixed with `!roll`, the text following is parsed as a d-notation roll and evaluated.
-- If a message is prefixed with `!srroll`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a Shadowrun roll.
-- If a message is prefixed with `!wodroll`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a World of Darkness roll.
+- If a message is prefixed with `!srroll`, the text following is parsed and evaluated as d-notation, and the resulting value is run as a Shadowrun roll.
+- If a message is prefixed with `!wodroll`, the text following is parsed and evaluated as d-notation, and the resulting value is run as a World of Darkness roll.
     - The roll can be modified with the strings `8again`, `9again`, and `chance`. Rolls of < 1 dice are ran as chance rolls
-- If a message is prefixed with `!dhtest`, the text following is parsed and evaluated as d-notation, and the resulting value is ran as a Dark Heresy/Fantasy
+- If a message is prefixed with `!dhtest`, the text following is parsed and evaluated as d-notation, and the resulting value is run as a Dark Heresy/Fantasy
 Flight Warhammer 40k RPG skill test (i.e. over or under 1d100)
 - If a message is prefixed with `!chelp`, brief usage details are sent.
 
 ## Environment Variables
 
-To run this project, you will need to add the following environment variables to your .env file
+To run this project, you will need to have a config file named `config.toml` present either in the active directory or
+in `/etc/costanza` conforming to the format in `example.config.toml`. It's recommended to copy that file & replace appropriate
+values there.
 
-`DISCORD_TOKEN`
-`INSOMNIAC_IDS`
-`DB_URL`
-
-You can use example.env as a skeleton.
+Additionally, for docker-compose compatability reasons, the environment variable `COSTANZA_DB_URL` will overwrite the connection
+string config for the Postgres connection. It's recommended to leave this variable unset to avoid confusion.
 
 ## Troubleshooting
 - By default, the docker-compose file mounts the postgres db to `./db_data`. If you encounter the error "error checking context" relating to that directory,
 make sure the current user has read permission on the directory.
+- If you're having trouble getting the application to connect to the DB, verify that the environment variable `COSTANZA_DB_URL`
+is unset.
 
 ## TODO
 - Add initiative tracking system

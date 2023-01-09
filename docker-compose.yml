@@ -4,12 +4,14 @@ services:
   costanza:
     image: costanza
     restart: unless-stopped
-    env_file: .env
     environment:
-      DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
+      COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
     build:
       context: .
       dockerfile: ./Dockerfile
+    secrets:
+      - source: costanza_config
+        target: /etc/costanza/config.toml
     depends_on:
       db: 
         condition: service_healthy
@@ -40,3 +42,7 @@ services:
       - ./migrations:/database
     command:
       [ "-path", "/database", "-database", "postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza?sslmode=disable", "up" ]
+
+secrets:
+  costanza_config:
+      file: ./config.toml

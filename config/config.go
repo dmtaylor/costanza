@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var configName = "parameters"
+var configName = "config"
 var etcPath = "/etc/costanza"
 
 var TokenPath = "discord.token"

@@ -32,7 +32,5 @@ var cfgCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(cfgCmd)
-
 	cfgCmd.Flags().BoolVarP(&dumpVars, "dumpvars", "d", false, "Echo loaded config")
 }

@@ -1,6 +1,8 @@
 db_data
 .vscode
 .gitignore
-README.md
+**/README.md
 migrations
 .git
+**/config.toml
+**/config.example.toml

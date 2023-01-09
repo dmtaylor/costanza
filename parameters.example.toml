@@ -1,0 +1,7 @@
+[discord]
+token = "example_token_here"
+insomniac_ids = ["id1", "6789"]
+insomniac_roles = ["role1", "9876"]
+
+[db]
+connection = "postgres://user:password@localhost:5432/costanza"

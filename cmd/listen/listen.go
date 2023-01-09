@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/parser"
@@ -39,20 +40,20 @@ type Server struct {
 }
 
 func init() {
-	Cmd.PersistentFlags().StringSliceVarP(
-		&config.OverwriteInsomniacIds,
+	Cmd.PersistentFlags().StringSliceP(
 		"insomniacIds",
 		"i",
 		nil,
 		"Overwrite insomniac ids for bedtime reminders",
 	)
-	Cmd.PersistentFlags().StringSliceVarP(
-		&config.OverwriteInsomniacRoles,
+	viper.BindPFlag("discord.insomniac_ids", Cmd.PersistentFlags().Lookup("insomniacIds"))
+	Cmd.PersistentFlags().StringSliceP(
 		"insomniacRoles",
 		"r",
 		nil,
 		"Overwrite insomniac roles for bedtime reminders",
 	)
+	viper.BindPFlag("discord.insomniac_roles", Cmd.PersistentFlags().Lookup("insomniacRoles"))
 }
 
 func newServer() (*Server, error) {

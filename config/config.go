@@ -3,16 +3,18 @@ package config
 
 import (
 	"log"
-	"os"
-	"strings"
 
-	"github.com/joho/godotenv"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
-var OverwriteDiscordToken string
-var OverwriteInsomniacIds []string
-var OverwriteInsomniacRoles []string
-var OverwriteDbConnectionStr string
+var configName = "parameters"
+var etcPath = "/etc/costanza"
+
+var TokenPath = "discord.token"
+var InsomniacIdsPath = "discord.insomniac_ids"
+var InsomniacRolesPath = "discord.insomniac_roles"
+var DbConnectionPath = "db.connection"
 
 type Config struct {
 	DiscordToken    string
@@ -21,45 +23,27 @@ type Config struct {
 	DbConnectionStr string
 }
 
+func SetConfigDefaults() {
+	viper.SetConfigName(configName)
+	viper.AddConfigPath(etcPath)
+	viper.AddConfigPath(".")
+}
+
 func Load() (*Config, error) {
-	err := godotenv.Load()
+	err := viper.ReadInConfig()
 	if err != nil {
-		log.Printf("failed to load dotenv: %v. Continuing...\n", err)
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Printf("config file not found. Continuing...\n")
+		} else {
+			return nil, errors.Wrap(err, "failed to load config file")
+		}
 	}
-
-	var discordtoken string
-	if OverwriteDiscordToken != "" {
-		discordtoken = OverwriteDiscordToken
-	} else {
-		discordtoken = os.Getenv("DISCORD_TOKEN")
-	}
-
-	var insomniacIds []string
-	if OverwriteInsomniacIds != nil {
-		insomniacIds = OverwriteInsomniacIds
-	} else {
-		insomniacIds = strings.Split(os.Getenv("INSOMNIAC_IDS"), ",")
-	}
-
-	var insomniacRoles []string
-	if OverwriteInsomniacRoles != nil {
-		insomniacRoles = OverwriteInsomniacRoles
-	} else {
-		insomniacRoles = strings.Split(os.Getenv("INSOMNIAC_ROLES"), ",")
-	}
-
-	var dbString string
-	if OverwriteDbConnectionStr != "" {
-		dbString = OverwriteDbConnectionStr
-	} else {
-		dbString = os.Getenv("DB_URL")
-	}
-
 	cfg := Config{
-		DiscordToken:    discordtoken,
-		InsomniacIds:    insomniacIds,
-		InsomniacRoles:  insomniacRoles,
-		DbConnectionStr: dbString,
+		DiscordToken:    viper.GetString(TokenPath),
+		InsomniacIds:    viper.GetStringSlice(InsomniacIdsPath),
+		InsomniacRoles:  viper.GetStringSlice(InsomniacRolesPath),
+		DbConnectionStr: viper.GetString(DbConnectionPath),
 	}
+
 	return &cfg, nil
 }

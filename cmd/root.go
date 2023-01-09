@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/dmtaylor/costanza/cmd/listen"
 	"github.com/dmtaylor/costanza/cmd/quoteCmd"
@@ -27,13 +28,15 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&config.OverwriteDiscordToken, "token", "t", "", "Overwrite bot token")
-	rootCmd.PersistentFlags().StringVarP(
-		&config.OverwriteDbConnectionStr,
+	cobra.OnInitialize(config.SetConfigDefaults)
+	rootCmd.PersistentFlags().StringP("token", "t", "", "Overwrite bot token")
+	viper.BindPFlag(config.TokenPath, rootCmd.PersistentFlags().Lookup("token"))
+	rootCmd.PersistentFlags().StringP(
 		"connectionStr",
 		"c",
 		"",
 		"Overwrite postgres connection string from env",
 	)
+	viper.BindPFlag("db.connection", rootCmd.PersistentFlags().Lookup("connectionStr"))
 	rootCmd.AddCommand(listen.Cmd, roll.Cmd, quoteCmd.Cmd, cfgCmd)
 }

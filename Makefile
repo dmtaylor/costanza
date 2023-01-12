@@ -9,7 +9,6 @@ ${EXECFILE}: ${GO_ENTRY}
 
 clean:
 	- go clean
-	- rm ${DB_FILE}
 
 rebuild: clean all
 

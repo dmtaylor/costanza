@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -61,7 +61,7 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load cfgs while building server")
 	}
-	pool, err := pgxpool.Connect(context.Background(), cfg.DbConnectionStr)
+	pool, err := pgxpool.New(context.Background(), cfg.DbConnectionStr)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build connection pool")
 	}

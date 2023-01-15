@@ -2,7 +2,6 @@
 package listen
 
 import (
-	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -10,15 +9,11 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
 	"github.com/dmtaylor/costanza/config"
-	"github.com/dmtaylor/costanza/internal/parser"
-	"github.com/dmtaylor/costanza/internal/quotes"
-	"github.com/dmtaylor/costanza/internal/roller"
 )
 
 // Cmd listenCmd represents the listen command
@@ -31,11 +26,7 @@ var Cmd = &cobra.Command{
 }
 
 type Server struct {
-	config           *config.Config
-	quotes           *quotes.QuoteEngine
-	dNotationParser  *parser.DNotationParser
-	thresholdRoller  *roller.ThresholdRoller
-	connPool         *pgxpool.Pool
+	app              config.App
 	dailyWinPatterns []*regexp.Regexp
 }
 
@@ -57,23 +48,10 @@ func init() {
 }
 
 func newServer() (*Server, error) {
-	cfg, err := config.Load()
+	app, err := config.LoadApp()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load cfgs while building server")
+		return nil, errors.Wrap(err, "failed to load server conf")
 	}
-	pool, err := pgxpool.New(context.Background(), cfg.DbConnectionStr)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build connection pool")
-	}
-	qEngine, err := quotes.NewQuoteEngine(pool)
-	if err != nil {
-		return nil, errors.Wrap(err, "server failed to build quote engine")
-	}
-	dNotationParser, err := parser.NewDNotationParser()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build basic parser")
-	}
-
 	framedPattern, err := regexp.Compile(`Framed\s+#\d+\s+🎥 🟩 ⬛ ⬛ ⬛ ⬛ ⬛`)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to compile framed pattern")
@@ -95,11 +73,7 @@ func newServer() (*Server, error) {
 	}
 
 	return &Server{
-		config:           cfg,
-		quotes:           qEngine,
-		dNotationParser:  dNotationParser,
-		thresholdRoller:  roller.NewThresholdRoller(),
-		connPool:         pool,
+		app:              *app,
 		dailyWinPatterns: []*regexp.Regexp{framedPattern, tradlePattern, wordlePattern, heardlePattern},
 	}, nil
 }
@@ -110,9 +84,9 @@ func runListen(cmd *cobra.Command, args []string) error {
 		log.Printf("failed to build state")
 		return err
 	}
-	defer server.connPool.Close()
+	defer server.app.ConnPool.Close()
 
-	dg, err := discordgo.New("Bot " + server.config.DiscordToken)
+	dg, err := discordgo.New("Bot " + config.GlobalConfig.DiscordToken)
 	if err != nil {
 		log.Printf("failed to start bot: %s\n", err)
 		return err

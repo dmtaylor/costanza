@@ -33,11 +33,11 @@ func init() {
 }
 
 func runQuote(cmd *cobra.Command, args []string) error {
-	cfg, err := config.Load()
+	err := config.LoadConfig()
 	if err != nil {
 		return errors.Wrap(err, "failed to load config")
 	}
-	pool, err := pgxpool.New(context.Background(), cfg.DbConnectionStr)
+	pool, err := pgxpool.New(context.Background(), config.GlobalConfig.DbConnectionStr)
 	if err != nil {
 		return errors.Wrap(err, "failed to build conn pool")
 	}

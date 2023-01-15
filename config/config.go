@@ -23,19 +23,27 @@ type Config struct {
 	DbConnectionStr string
 }
 
+var GlobalConfig Config
+
 func SetConfigDefaults() {
 	viper.SetConfigName(configName)
 	viper.AddConfigPath(etcPath)
 	viper.AddConfigPath(".")
 }
 
-func Load() (*Config, error) {
+func LoadConfig() error {
+	GlobalConfig = Config{
+		DiscordToken:    "",
+		InsomniacIds:    nil,
+		InsomniacRoles:  nil,
+		DbConnectionStr: "",
+	}
 	err := viper.ReadInConfig()
 	if err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Printf("config file not found. Continuing...\n")
 		} else {
-			return nil, errors.Wrap(err, "failed to load config file")
+			return errors.Wrap(err, "failed to load config file")
 		}
 	}
 	cfg := Config{
@@ -44,6 +52,7 @@ func Load() (*Config, error) {
 		InsomniacRoles:  viper.GetStringSlice(InsomniacRolesPath),
 		DbConnectionStr: viper.GetString(DbConnectionPath),
 	}
+	GlobalConfig = cfg
 
-	return &cfg, nil
+	return nil
 }

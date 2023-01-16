@@ -26,7 +26,7 @@ func LoadApp() (*App, error) {
 		return nil, errors.Wrap(err, "failed to load cfgs while loading app")
 	}
 
-	pool, err := pgxpool.New(context.Background(), GlobalConfig.DbConnectionStr)
+	pool, err := pgxpool.New(context.Background(), GlobalConfig.Db.Connection)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build connection pool")
 	}

@@ -86,7 +86,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 	}
 	defer server.app.ConnPool.Close()
 
-	dg, err := discordgo.New("Bot " + config.GlobalConfig.DiscordToken)
+	dg, err := discordgo.New("Bot " + config.GlobalConfig.Discord.Token)
 	if err != nil {
 		log.Printf("failed to start bot: %s\n", err)
 		return err

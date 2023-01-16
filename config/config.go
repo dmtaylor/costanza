@@ -12,15 +12,27 @@ var configName = "config"
 var etcPath = "/etc/costanza"
 
 var TokenPath = "discord.token"
-var InsomniacIdsPath = "discord.insomniac_ids"
-var InsomniacRolesPath = "discord.insomniac_roles"
-var DbConnectionPath = "db.connection"
+
+type ListenConfig struct {
+	GuildId         string `mapstructure:"guild_id"`
+	ReportChannelId string `mapstructure:"report_channel_id"`
+}
+
+type DiscordConfig struct {
+	Token            string
+	InsomniacIds     []string       `mapstructure:"insomniac_ids"`
+	InsomniacRoles   []string       `mapstructure:"insomniac_roles"`
+	ListenConfigs    []ListenConfig `mapstructure:"listen_configs"`
+	ListenChannelSet map[string]bool
+}
+
+type DbConfig struct {
+	Connection string
+}
 
 type Config struct {
-	DiscordToken    string
-	InsomniacIds    []string
-	InsomniacRoles  []string
-	DbConnectionStr string
+	Discord DiscordConfig
+	Db      DbConfig
 }
 
 var GlobalConfig Config
@@ -33,10 +45,14 @@ func SetConfigDefaults() {
 
 func LoadConfig() error {
 	GlobalConfig = Config{
-		DiscordToken:    "",
-		InsomniacIds:    nil,
-		InsomniacRoles:  nil,
-		DbConnectionStr: "",
+		Discord: DiscordConfig{
+			Token:            "fake-default-value",
+			InsomniacIds:     nil,
+			InsomniacRoles:   nil,
+			ListenConfigs:    nil,
+			ListenChannelSet: make(map[string]bool, 0),
+		},
+		Db: DbConfig{Connection: "postgres://costanza:myvoiceismypassportverifyme@localhost:5432/costanza?sslmode=disable"},
 	}
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -46,13 +62,13 @@ func LoadConfig() error {
 			return errors.Wrap(err, "failed to load config file")
 		}
 	}
-	cfg := Config{
-		DiscordToken:    viper.GetString(TokenPath),
-		InsomniacIds:    viper.GetStringSlice(InsomniacIdsPath),
-		InsomniacRoles:  viper.GetStringSlice(InsomniacRolesPath),
-		DbConnectionStr: viper.GetString(DbConnectionPath),
+	err = viper.Unmarshal(&GlobalConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to unmarshal config")
 	}
-	GlobalConfig = cfg
+	for _, listenConfig := range GlobalConfig.Discord.ListenConfigs {
+		GlobalConfig.Discord.ListenChannelSet[listenConfig.GuildId] = true
+	}
 
 	return nil
 }

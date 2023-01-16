@@ -378,13 +378,13 @@ func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member)
 		return false
 	}
 
-	for _, uid := range config.GlobalConfig.InsomniacIds {
+	for _, uid := range config.GlobalConfig.Discord.InsomniacIds {
 		if user.ID == uid {
 			return true
 		}
 	}
 
-	for _, role := range config.GlobalConfig.InsomniacRoles {
+	for _, role := range config.GlobalConfig.Discord.InsomniacRoles {
 		for _, userRole := range member.Roles {
 			if role == userRole {
 				return true
@@ -395,6 +395,7 @@ func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member)
 
 }
 
+// DailyWinReact performs reaction if it detects a win pattern in the message
 func (s *Server) DailyWinReact(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
@@ -417,6 +418,11 @@ func (s *Server) LogMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 	}
 
 	if m.Author.Bot {
+		return
+	}
+
+	// Only log stats if channel included in configs
+	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
 		return
 	}
 

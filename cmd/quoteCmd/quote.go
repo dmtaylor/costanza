@@ -37,7 +37,7 @@ func runQuote(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to load config")
 	}
-	pool, err := pgxpool.New(context.Background(), config.GlobalConfig.DbConnectionStr)
+	pool, err := pgxpool.New(context.Background(), config.GlobalConfig.Db.Connection)
 	if err != nil {
 		return errors.Wrap(err, "failed to build conn pool")
 	}

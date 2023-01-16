@@ -96,6 +96,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 	dg.AddHandler(server.EchoInsomniac)
 	dg.AddHandler(server.DispatchRollCommands)
 	dg.AddHandler(server.DailyWinReact)
+	dg.AddHandler(server.LogMessageActivity)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages
 
 	err = dg.Open()

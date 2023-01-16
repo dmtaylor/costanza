@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"regexp"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
@@ -10,14 +9,15 @@ import (
 	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
 	"github.com/dmtaylor/costanza/internal/roller"
+	"github.com/dmtaylor/costanza/internal/stats"
 )
 
 type App struct {
-	Quotes           *quotes.QuoteEngine
-	DNotationParser  *parser.DNotationParser
-	ThresholdRoller  *roller.ThresholdRoller
-	ConnPool         *pgxpool.Pool
-	DailyWinPatterns []*regexp.Regexp
+	Quotes          *quotes.QuoteEngine
+	DNotationParser *parser.DNotationParser
+	ThresholdRoller *roller.ThresholdRoller
+	ConnPool        *pgxpool.Pool
+	Stats           *stats.Stats
 }
 
 func LoadApp() (*App, error) {
@@ -34,6 +34,7 @@ func LoadApp() (*App, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "server failed to build quote engine")
 	}
+	statsSvc := stats.New(pool)
 	dNotationParser, err := parser.NewDNotationParser()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build basic parser")
@@ -44,5 +45,6 @@ func LoadApp() (*App, error) {
 		DNotationParser: dNotationParser,
 		ThresholdRoller: roller.NewThresholdRoller(),
 		ConnPool:        pool,
+		Stats:           &statsSvc,
 	}, nil
 }

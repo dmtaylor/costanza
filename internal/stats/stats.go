@@ -3,6 +3,7 @@ package stats
 import (
 	"context"
 
+	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
@@ -32,7 +33,7 @@ func (s Stats) LogActivity(ctx context.Context, guildId, userId uint64, reportMo
 SELECT id
 FROM discord_usage_stats
 WHERE guild_id = $1 AND user_id = $2 AND report_month = $3
-`, guildId, userId, reportMonth).Scan(existingLogId)
+`, guildId, userId, reportMonth).Scan(&existingLogId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// No usage so far, insert new record
@@ -61,12 +62,23 @@ WHERE id = $1
 	return nil
 }
 
-func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]db.DiscordUsageStat, error) {
+func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]*db.DiscordUsageStat, error) {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get pool connection")
 	}
 	defer conn.Release()
-	// TODO implement
-	return nil, nil
+
+	var stats []*db.DiscordUsageStat
+	err = pgxscan.Select(ctx, conn, stats, `
+SELECT *
+FROM discord_usage_stats
+WHERE guild_id = $1 AND report_month = $2
+ORDER BY message_count DESC
+LIMIT 5
+`, guildId, reportMonth)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to pull top post stats")
+	}
+	return stats, nil
 }

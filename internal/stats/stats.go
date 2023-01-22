@@ -70,7 +70,7 @@ func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth strin
 	defer conn.Release()
 
 	var stats []*db.DiscordUsageStat
-	err = pgxscan.Select(ctx, conn, stats, `
+	err = pgxscan.Select(ctx, conn, &stats, `
 SELECT *
 FROM discord_usage_stats
 WHERE guild_id = $1 AND report_month = $2
@@ -81,4 +81,17 @@ LIMIT 5
 		return nil, errors.Wrap(err, "failed to pull top post stats")
 	}
 	return stats, nil
+}
+
+func (s Stats) RemoveMonthActivity(ctx context.Context, reportMonth string) error {
+	conn, err := s.pool.Acquire(ctx)
+	if err != nil {
+		return errors.Wrap(err, "failed to get pool connection")
+	}
+	defer conn.Release()
+	_, err = conn.Exec(ctx, "DELETE FROM discord_usage_stats WHERE report_month = $1", reportMonth)
+	if err != nil {
+		return errors.Wrap(err, "failed to delete usage stats")
+	}
+	return nil
 }

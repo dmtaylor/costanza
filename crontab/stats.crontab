@@ -1,0 +1,2 @@
+0 10 1 * * /bin/bash -c '/home/costanza/costanza report --month $(date --date="$(date +%Y-%m-15) - 1 month" "+%Y%m")'
+0 11 1 * * /bin/bash -c '/home/costanza/costanza report remove --month $(date --date="$(date +%Y-%m-15) - 1 month" "+%Y%m")'

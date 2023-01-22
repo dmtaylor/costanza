@@ -32,7 +32,7 @@ func removeStats(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to remove stats for month "+month)
 	}
-	fmt.Printf("Successfully removed stats for %s", month)
+	fmt.Printf("Successfully removed stats for %s\n", month)
 
 	return nil
 }

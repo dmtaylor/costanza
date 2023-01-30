@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 
+	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/roller"
 )
 
@@ -64,7 +66,7 @@ func (s *Server) EchoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) 
 }
 
 func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
-	quote, err := s.quotes.GetQuoteSql(ctx)
+	quote, err := s.app.Quotes.GetQuoteSql(ctx)
 	if err != nil {
 		log.Printf("failed to get quote: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -128,7 +130,7 @@ func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.Mess
 }
 
 func (s *Server) doDNotationRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
-	result, err := s.dNotationParser.DoParse(rollStr)
+	result, err := s.app.DNotationParser.DoParse(rollStr)
 	if err != nil {
 		log.Printf("error parsing string: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -153,7 +155,7 @@ func (s *Server) doDNotationRoll(sess *discordgo.Session, m *discordgo.MessageCr
 }
 
 func (s *Server) doShadowrunRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
-	rollCount, err := s.dNotationParser.DoParse(rollStr)
+	rollCount, err := s.app.DNotationParser.DoParse(rollStr)
 	if err != nil {
 		log.Printf("error parsing string: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -167,7 +169,7 @@ func (s *Server) doShadowrunRoll(sess *discordgo.Session, m *discordgo.MessageCr
 		return
 	}
 	params := roller.GetSrParams()
-	result, err := s.thresholdRoller.DoThresholdRoll(rollCount.Value, roller.SrDieSides, params)
+	result, err := s.app.ThresholdRoller.DoThresholdRoll(rollCount.Value, roller.SrDieSides, params)
 	if err != nil {
 		log.Printf("failed to do threshold roll: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -242,7 +244,7 @@ func (s *Server) doWodRoll(sess *discordgo.Session, m *discordgo.MessageCreate, 
 		s.doWodChanceRoll(sess, m, params)
 		return
 	}
-	rollCount, err := s.dNotationParser.DoParse(rollStr)
+	rollCount, err := s.app.DNotationParser.DoParse(rollStr)
 	if err != nil {
 		log.Printf("failed getting number or dice to roll: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -259,7 +261,7 @@ func (s *Server) doWodRoll(sess *discordgo.Session, m *discordgo.MessageCreate, 
 		s.doWodChanceRoll(sess, m, params)
 		return
 	}
-	roll, err := s.thresholdRoller.DoThresholdRoll(rollCount.Value, roller.WodDieSides, params)
+	roll, err := s.app.ThresholdRoller.DoThresholdRoll(rollCount.Value, roller.WodDieSides, params)
 	if err != nil {
 		log.Printf("failed doing wod threshold roll: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -292,7 +294,7 @@ func (s *Server) doWodRoll(sess *discordgo.Session, m *discordgo.MessageCreate, 
 }
 
 func (s *Server) doWodChanceRoll(sess *discordgo.Session, m *discordgo.MessageCreate, params roller.ThresholdParameters) {
-	roll, err := s.thresholdRoller.DoThresholdRoll(1, roller.WodDieSides, params)
+	roll, err := s.app.ThresholdRoller.DoThresholdRoll(1, roller.WodDieSides, params)
 	if err != nil {
 		log.Printf("failed doing wod chance roll: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -326,7 +328,7 @@ func (s *Server) doWodChanceRoll(sess *discordgo.Session, m *discordgo.MessageCr
 }
 
 func (s *Server) doDHTestRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
-	threshold, err := s.dNotationParser.DoParse(rollStr)
+	threshold, err := s.app.DNotationParser.DoParse(rollStr)
 	if err != nil {
 		log.Printf("error parsing string: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -339,7 +341,7 @@ func (s *Server) doDHTestRoll(sess *discordgo.Session, m *discordgo.MessageCreat
 		}
 		return
 	}
-	roll, err := s.dNotationParser.DoParse("1d100")
+	roll, err := s.app.DNotationParser.DoParse("1d100")
 	if err != nil {
 		log.Printf("error doing d100 roll: %s\n", err)
 		_, err := sess.ChannelMessageSendReply(
@@ -376,13 +378,13 @@ func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member)
 		return false
 	}
 
-	for _, uid := range s.config.InsomniacIds {
+	for _, uid := range config.GlobalConfig.Discord.InsomniacIds {
 		if user.ID == uid {
 			return true
 		}
 	}
 
-	for _, role := range s.config.InsomniacRoles {
+	for _, role := range config.GlobalConfig.Discord.InsomniacRoles {
 		for _, userRole := range member.Roles {
 			if role == userRole {
 				return true
@@ -393,6 +395,7 @@ func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member)
 
 }
 
+// DailyWinReact performs reaction if it detects a win pattern in the message
 func (s *Server) DailyWinReact(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
@@ -405,6 +408,38 @@ func (s *Server) DailyWinReact(sess *discordgo.Session, m *discordgo.MessageCrea
 				log.Printf("error adding reaction: %s\n", err)
 			}
 			return
+		}
+	}
+}
+
+func (s *Server) LogMessageActivity(sess *discordgo.Session, m *discordgo.MessageCreate) {
+	if m.Author.ID == sess.State.User.ID {
+		return
+	}
+
+	if m.Author.Bot {
+		return
+	}
+
+	// Only log stats if channel included in configs
+	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
+		return
+	}
+
+	if m.Type == discordgo.MessageTypeDefault || m.Type == discordgo.MessageTypeReply {
+		guildId, err := strconv.ParseUint(m.GuildID, 10, 64)
+		if err != nil {
+			log.Printf("error logging activity: %s\n", err)
+			return
+		}
+		userId, err := strconv.ParseUint(m.Author.ID, 10, 64)
+		if err != nil {
+			log.Printf("error logging activity: %s\n", err)
+			return
+		}
+		err = s.app.Stats.LogActivity(context.Background(), guildId, userId, m.Timestamp.Format("2006-01"))
+		if err != nil {
+			log.Printf("error creating activity log: %s\n", err)
 		}
 	}
 }

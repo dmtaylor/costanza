@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -33,11 +33,11 @@ func init() {
 }
 
 func runQuote(cmd *cobra.Command, args []string) error {
-	cfg, err := config.Load()
+	err := config.LoadConfig()
 	if err != nil {
 		return errors.Wrap(err, "failed to load config")
 	}
-	pool, err := pgxpool.Connect(context.Background(), cfg.DbConnectionStr)
+	pool, err := pgxpool.New(context.Background(), config.GlobalConfig.Db.Connection)
 	if err != nil {
 		return errors.Wrap(err, "failed to build conn pool")
 	}

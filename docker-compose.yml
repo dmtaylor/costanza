@@ -2,7 +2,7 @@ version: '3'
 
 services:
   costanza:
-    image: costanza
+    image: costanza:latest
     restart: unless-stopped
     environment:
       COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
@@ -17,6 +17,20 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+  cron:
+    image: costanza:latest
+    restart: unless-stopped
+    environment:
+      COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
+    secrets:
+      - source: costanza_config
+        target: /etc/costanza/config.toml
+    depends_on:
+      costanza:
+        condition: service_started
+    entrypoint: ["/usr/sbin/cron", "-f"]
+    user: root
+
   db:
     image: 'postgres:latest'
     ports:

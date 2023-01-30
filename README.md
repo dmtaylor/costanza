@@ -33,6 +33,8 @@ Costanza has the following subcommands:
 - roll: runs the dice roller using the positional arguments. This is useful for testing out changes to the parser on the command line
 - quote: prints a quote to stdout. This is useful for testing changes to quote retrieval.
 - cfg: loads configuration from environment. This is useful in debugging issues loading configuration.
+- report: send usage reports for the given month to the configured channels
+  - remove: remove usage status for the given month from the db
 
 The following behaviors are present in listen mode:
 - If Costanza is @-ed, it will respond with a random quote from a slightly curated list of George Costanza quotes

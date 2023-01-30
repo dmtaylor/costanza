@@ -6,6 +6,7 @@ import (
 
 	"github.com/dmtaylor/costanza/cmd/listen"
 	"github.com/dmtaylor/costanza/cmd/quoteCmd"
+	"github.com/dmtaylor/costanza/cmd/report"
 	"github.com/dmtaylor/costanza/cmd/roll"
 	"github.com/dmtaylor/costanza/config"
 )
@@ -39,5 +40,5 @@ func init() {
 	)
 	viper.BindPFlag("db.connection", rootCmd.PersistentFlags().Lookup("connectionStr"))
 	viper.BindEnv("db.connection", "COSTANZA_DB_URL")
-	rootCmd.AddCommand(listen.Cmd, roll.Cmd, quoteCmd.Cmd, cfgCmd)
+	rootCmd.AddCommand(listen.Cmd, roll.Cmd, quoteCmd.Cmd, cfgCmd, report.Cmd)
 }

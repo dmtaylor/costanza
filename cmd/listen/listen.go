@@ -3,6 +3,7 @@ package listen
 
 import (
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -30,6 +31,8 @@ type Server struct {
 	dailyWinPatterns []*regexp.Regexp
 }
 
+var healthcheckEnabled bool
+
 func init() {
 	Cmd.PersistentFlags().StringSliceP(
 		"insomniacIds",
@@ -45,6 +48,8 @@ func init() {
 		"Overwrite insomniac roles for bedtime reminders",
 	)
 	viper.BindPFlag("discord.insomniac_roles", Cmd.PersistentFlags().Lookup("insomniacRoles"))
+
+	Cmd.PersistentFlags().BoolVar(&healthcheckEnabled, "healthcheck", false, "Enable health endpoint on :8585")
 }
 
 func newServer() (*Server, error) {
@@ -108,10 +113,25 @@ func runListen(cmd *cobra.Command, args []string) error {
 	defer func() {
 		closeErr = dg.Close()
 	}()
+
 	log.Printf("Bot started, CTL-C to quit")
+	if healthcheckEnabled {
+		http.HandleFunc("/api/v1/healthcheck", healthcheck)
+		go func() {
+			err := http.ListenAndServe(":8585", nil)
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				log.Fatal(err)
+			}
+		}()
+
+	}
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	return closeErr
+}
+
+func healthcheck(w http.ResponseWriter, request *http.Request) {
+	w.WriteHeader(200)
 }

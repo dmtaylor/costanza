@@ -17,6 +17,11 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+    healthcheck:
+      test: curl -f http://localhost:8585/api/v1/healthcheck || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 5
   cron:
     image: costanza:latest
     restart: unless-stopped

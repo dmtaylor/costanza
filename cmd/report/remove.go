@@ -2,7 +2,7 @@ package report
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -27,12 +27,12 @@ func removeStats(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, "error getting month")
 	}
-	fmt.Printf("Deleting usage activity for month %s...\n", month)
+	log.Printf("Deleting usage activity for month %s...", month)
 	err = app.Stats.RemoveMonthActivity(context.Background(), month)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove stats for month "+month)
 	}
-	fmt.Printf("Successfully removed stats for %s\n", month)
+	log.Printf("Successfully removed stats for %s", month)
 
 	return nil
 }

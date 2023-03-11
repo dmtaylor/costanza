@@ -13,8 +13,8 @@ RUN apt-get update
 RUN apt-get install -y ca-certificates
 RUN apt-get install -y curl
 RUN apt-get install -y cron
-COPY crontab/stats.crontab /etc/cron.d/stats.crontab
-RUN chmod 0644 /etc/cron.d/stats.crontab && crontab /etc/cron.d/stats.crontab
+COPY crontab/stats.crontab /etc/cron.d/stats
+RUN chmod 0644 /etc/cron.d/stats && crontab /etc/cron.d/stats
 
 RUN mkdir /etc/costanza # directory for config file
 RUN chmod +r /etc/costanza
@@ -23,4 +23,4 @@ RUN useradd --create-home --shell /bin/bash costanza
 USER costanza:costanza
 COPY --from=build /go/src/app/costanza /home/costanza/costanza
 
-ENTRYPOINT [ "/home/costanza/costanza", "listen", "--healthcheck" ]
+CMD [ "/home/costanza/costanza", "listen", "--healthcheck" ]

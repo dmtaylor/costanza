@@ -33,7 +33,7 @@ services:
     depends_on:
       costanza:
         condition: service_started
-    entrypoint: ["/usr/sbin/cron", "-f"]
+    command: ["/usr/sbin/cron", "-f", "-L", "15"]
     user: root
 
   db:

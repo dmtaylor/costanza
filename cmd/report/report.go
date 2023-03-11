@@ -4,6 +4,7 @@ package report
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,6 +54,7 @@ func runStats(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, "error getting month")
 	}
+	log.Printf("starting getting stats for %s", month)
 	sess, err := discordgo.New("Bot " + config.GlobalConfig.Discord.Token)
 	handle := statsHandle{app: app, sess: sess}
 	var wg sync.WaitGroup
@@ -69,6 +71,7 @@ func runStats(cmd *cobra.Command, args []string) error {
 		}(listenConfig)
 	}
 	wg.Wait()
+	log.Printf("finished getting stats for %s", month)
 	return subErrors
 }
 

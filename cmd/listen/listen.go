@@ -96,6 +96,17 @@ func runListen(cmd *cobra.Command, args []string) error {
 		log.Printf("failed to start bot: %s\n", err)
 		return err
 	}
+	dg.AddHandler(func(sess *discordgo.Session, ready *discordgo.Ready) {
+		if healthcheckEnabled {
+			http.HandleFunc("/api/v1/healthcheck", healthcheck)
+			go func() {
+				err := http.ListenAndServe(":8585", nil)
+				if err != nil && !errors.Is(err, http.ErrServerClosed) {
+					log.Fatal(err)
+				}
+			}()
+		}
+	})
 	dg.AddHandler(server.Help)
 	dg.AddHandler(server.EchoQuote)
 	dg.AddHandler(server.EchoInsomniac)
@@ -115,16 +126,6 @@ func runListen(cmd *cobra.Command, args []string) error {
 	}()
 
 	log.Printf("Bot started, CTL-C to quit")
-	if healthcheckEnabled {
-		http.HandleFunc("/api/v1/healthcheck", healthcheck)
-		go func() {
-			err := http.ListenAndServe(":8585", nil)
-			if err != nil && !errors.Is(err, http.ErrServerClosed) {
-				log.Fatal(err)
-			}
-		}()
-
-	}
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc

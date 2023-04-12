@@ -1,114 +1,19 @@
 package listen
 
 import (
-	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 
-	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/roller"
 )
 
-var startLateHours, endLateHours time.Time
-
-const helpMessage string = `
-Costanza commands:
-` +
-	"```" + `
-!chelp:   this message.
-!roll:    parse text as d-notation and evaluate expression.
-!srroll:  parse text as d-notation, evaluate, and use result for Shadowrun roll.
-!wodroll: parse text as d-notation, evaluate, and use result for World of Darkness roll.
-          Can be modified with '8again', '9again' and 'chance'. Rolls of < 1 dice are done as chance rolls.
-!dhtest:  parse text as d-notation, evaluate, and use result for FF Warhammer 40k RPG roll (over-under on 1d100).
-` +
-	"```"
-
-// Help handler function for help messages
-func (s *Server) Help(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
-
-	words := strings.Fields(m.Message.Content)
-	if len(words) < 1 {
-		return
-	}
-	if words[0] == "!chelp" {
-		_, err := sess.ChannelMessageSend(
-			m.ChannelID,
-			helpMessage,
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-	}
-}
-
-// EchoQuote handler function for sending George Costanza quotes
-func (s *Server) EchoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	ctx := context.Background()
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
-
-	for _, mentionedUser := range m.Mentions {
-		if mentionedUser.ID == sess.State.User.ID {
-			s.sendQuote(ctx, sess, m)
-			return
-		}
-	}
-}
-
-func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
-	quote, err := s.app.Quotes.GetQuoteSql(ctx)
-	if err != nil {
-		log.Printf("failed to get quote: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to get a quote. Why must there always be a problem?",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
-	}
-	_, err = sess.ChannelMessageSendReply(m.ChannelID, quote, m.Reference())
-	if err != nil {
-		log.Printf("error sending message: %s\n", err)
-	}
-}
-
-func (s *Server) EchoInsomniac(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
-
-	if s.isInsomniacUser(m.Author, m.Member) && isAfterHours() {
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			fmt.Sprintf("%s All right. That's enough for today. You're tired. Get some sleep. I'll see you first thing in the morning.",
-				m.Author.Mention()),
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
-	}
-
-}
-
-// DispatchRollCommands Main entrypoint into handling roll commands. Reads the first word of the message content
+// dispatchRollCommands Main entrypoint into handling roll commands. Reads the first word of the message content
 // and calls the appropriate method for performing a roll. Update this to add additional message prefixes for additional
 // roll types.
-func (s *Server) DispatchRollCommands(sess *discordgo.Session, m *discordgo.MessageCreate) {
+func (s *Server) dispatchRollCommands(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
@@ -371,98 +276,4 @@ func (s *Server) doDHTestRoll(sess *discordgo.Session, m *discordgo.MessageCreat
 	if err != nil {
 		log.Printf("error sending message: %s\n", err)
 	}
-}
-
-func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member) bool {
-	if user == nil || member == nil {
-		return false
-	}
-
-	for _, uid := range config.GlobalConfig.Discord.InsomniacIds {
-		if user.ID == uid {
-			return true
-		}
-	}
-
-	for _, role := range config.GlobalConfig.Discord.InsomniacRoles {
-		for _, userRole := range member.Roles {
-			if role == userRole {
-				return true
-			}
-		}
-	}
-	return false
-
-}
-
-// DailyWinReact performs reaction if it detects a win pattern in the message
-func (s *Server) DailyWinReact(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
-
-	for _, pattern := range s.dailyWinPatterns {
-		if pattern.MatchString(m.Message.Content) {
-			err := sess.MessageReactionAdd(m.ChannelID, m.Message.ID, "💯")
-			if err != nil {
-				log.Printf("error adding reaction: %s\n", err)
-			}
-			return
-		}
-	}
-}
-
-func (s *Server) LogMessageActivity(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
-
-	if m.Author.Bot {
-		return
-	}
-
-	// Only log stats if channel included in configs
-	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
-		return
-	}
-
-	if m.Type == discordgo.MessageTypeDefault || m.Type == discordgo.MessageTypeReply {
-		guildId, err := strconv.ParseUint(m.GuildID, 10, 64)
-		if err != nil {
-			log.Printf("error logging activity: %s\n", err)
-			return
-		}
-		userId, err := strconv.ParseUint(m.Author.ID, 10, 64)
-		if err != nil {
-			log.Printf("error logging activity: %s\n", err)
-			return
-		}
-		err = s.app.Stats.LogActivity(context.Background(), guildId, userId, m.Timestamp.Format("2006-01"))
-		if err != nil {
-			log.Printf("error creating activity log: %s\n", err)
-		}
-	}
-}
-
-func isAfterHours() bool {
-	var err error
-	if startLateHours.IsZero() {
-		startLateHours, err = time.Parse(time.Kitchen, "12:30AM")
-		if err != nil {
-			log.Panicf("Error parsing start date format: %s\n", err)
-		}
-	}
-	if endLateHours.IsZero() {
-		endLateHours, err = time.Parse(time.Kitchen, "06:00AM")
-		if err != nil {
-			log.Panicf("Error parsing end date format: %s\n", err)
-		}
-	}
-
-	currentTime, err := time.Parse(time.Kitchen, time.Now().Format(time.Kitchen))
-	if err != nil {
-		log.Printf("failed to parse current time: %s. Failing closed\n", err)
-		return false
-	}
-	return startLateHours.Before(currentTime) && endLateHours.After(currentTime)
 }

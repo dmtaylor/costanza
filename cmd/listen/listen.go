@@ -106,13 +106,14 @@ func runListen(cmd *cobra.Command, args []string) error {
 				}
 			}()
 		}
+		log.Printf("Bot started, CTL-C to quit")
 	})
-	dg.AddHandler(server.Help)
-	dg.AddHandler(server.EchoQuote)
-	dg.AddHandler(server.EchoInsomniac)
-	dg.AddHandler(server.DispatchRollCommands)
-	dg.AddHandler(server.DailyWinReact)
-	dg.AddHandler(server.LogMessageActivity)
+	dg.AddHandler(server.help)
+	dg.AddHandler(server.echoQuote)
+	dg.AddHandler(server.echoInsomniac)
+	dg.AddHandler(server.dispatchRollCommands)
+	dg.AddHandler(server.dailyWinReact)
+	dg.AddHandler(server.logMessageActivity)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages
 
 	err = dg.Open()
@@ -125,7 +126,6 @@ func runListen(cmd *cobra.Command, args []string) error {
 		closeErr = dg.Close()
 	}()
 
-	log.Printf("Bot started, CTL-C to quit")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc

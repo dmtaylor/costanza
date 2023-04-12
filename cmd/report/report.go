@@ -41,7 +41,7 @@ func init() {
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// reportCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// reportCmd.Flags().BoolP("toggle", "t", false, "help message for toggle")
 	Cmd.PersistentFlags().StringP("month", "m", time.Now().Format("2006-01"), "Month for querying stats")
 }
 

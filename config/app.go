@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
@@ -20,31 +21,43 @@ type App struct {
 	Stats           *stats.Stats
 }
 
+var loader sync.Once
+var app App
+
 func LoadApp() (*App, error) {
-	err := LoadConfig()
+	var err error
+	loader.Do(func() {
+		err = LoadConfig()
+		if err != nil {
+			err = errors.Wrap(err, "failed to load cfgs while loading app")
+			return
+		}
+		pool, err := pgxpool.New(context.Background(), GlobalConfig.Db.Connection)
+		if err != nil {
+			err = errors.Wrap(err, "failed to build connection pool")
+			return
+		}
+		qEngine, err := quotes.NewQuoteEngine(pool)
+		if err != nil {
+			err = errors.Wrap(err, "server failed to build quote engine")
+			return
+		}
+		statsSvc := stats.New(pool)
+		dNotationParser, err := parser.NewDNotationParser()
+		if err != nil {
+			err = errors.Wrap(err, "failed to build parser")
+			return
+		}
+		app = App{
+			Quotes:          qEngine,
+			DNotationParser: dNotationParser,
+			ThresholdRoller: roller.NewThresholdRoller(),
+			ConnPool:        pool,
+			Stats:           &statsSvc,
+		}
+	})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load cfgs while loading app")
+		return nil, err
 	}
-
-	pool, err := pgxpool.New(context.Background(), GlobalConfig.Db.Connection)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build connection pool")
-	}
-	qEngine, err := quotes.NewQuoteEngine(pool)
-	if err != nil {
-		return nil, errors.Wrap(err, "server failed to build quote engine")
-	}
-	statsSvc := stats.New(pool)
-	dNotationParser, err := parser.NewDNotationParser()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to build basic parser")
-	}
-
-	return &App{
-		Quotes:          qEngine,
-		DNotationParser: dNotationParser,
-		ThresholdRoller: roller.NewThresholdRoller(),
-		ConnPool:        pool,
-		Stats:           &statsSvc,
-	}, nil
+	return &app, nil
 }

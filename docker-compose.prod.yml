@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  costanza:
+    image: costanza:latest
+  cron:
+    image: costanza:latest
+  db:
+    ports:
+      - "54320:5432"
+    volumes:
+      - /var/costanza/db_data:/var/lib/postgresql/data/

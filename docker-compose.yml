@@ -2,7 +2,6 @@ version: '3'
 
 services:
   costanza:
-    image: costanza:latest
     restart: unless-stopped
     environment:
       COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
@@ -23,7 +22,6 @@ services:
       timeout: 5s
       retries: 5
   cron:
-    image: costanza:latest
     restart: unless-stopped
     environment:
       COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
@@ -38,15 +36,11 @@ services:
 
   db:
     image: 'postgres:latest'
-    ports:
-      - "54320:5432"
     environment:
       POSTGRES_USER: costanza
       POSTGRES_PASSWORD: myvoiceismypassportverifyme
       POSTGRES_DB: costanza
     restart: always
-    volumes:
-      - ./db_data:/var/lib/postgresql/data/
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "costanza"]
       interval: 10s

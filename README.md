@@ -25,7 +25,8 @@ Database migrations are contained under `migrations`. [go-migrate](https://githu
 DB (and is used by docker-compose to run the migrations in the containerized setup), but any migration tool supporting up/down operations should be fine.
 
 To spin it up in a container (including the DB & running all migrations), use `docker-compose up`. Naturally you will need Docker &
-docker-compose installed for this.
+docker-compose installed for this. Running via docker-compose requires directories `/var/costanza/db_data` & `/var/costanza_dev/db_data`
+for the Postgres volume mounts. Using the Makefile targets for docker-compose based deployments should ensure these directories are created as needed.
 
 ## Usage
 Costanza has the following subcommands:
@@ -57,8 +58,8 @@ Additionally, for docker-compose compatability reasons, the environment variable
 string config for the Postgres connection. It's recommended to leave this variable unset to avoid confusion.
 
 ## Troubleshooting
-- By default, the docker-compose file mounts the postgres db to `./db_data`. If you encounter the error "error checking context" relating to that directory,
-make sure the current user has read permission on the directory.
+- docker-compose mounts the postgres db under `/var/costanza/db_data` or `/var/costanza_dev/db_data`.
+If you're encountering issues with the db service, check that those directories exist and have proper permissions.
 - If you're having trouble getting the application to connect to the DB, verify that the environment variable `COSTANZA_DB_URL`
 is unset.
 

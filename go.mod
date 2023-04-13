@@ -7,6 +7,7 @@ require (
 	github.com/bwmarrin/discordgo v0.26.1
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/jackc/pgx/v5 v5.2.0
+	github.com/magefile/mage v1.14.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/viper v1.14.0
 	go.uber.org/multierr v1.9.0

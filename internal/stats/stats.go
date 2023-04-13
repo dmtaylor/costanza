@@ -2,11 +2,12 @@ package stats
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 
 	"github.com/dmtaylor/costanza/internal/db"
 )
@@ -24,7 +25,7 @@ func New(pool *pgxpool.Pool) Stats {
 func (s Stats) LogActivity(ctx context.Context, guildId, userId uint64, reportMonth string) error {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get pool connection")
+		return fmt.Errorf("failed to get pool connection: %w", err)
 	}
 	defer conn.Release()
 
@@ -42,12 +43,12 @@ WHERE guild_id = $1 AND user_id = $2 AND report_month = $3
 				userId,
 				reportMonth)
 			if err != nil {
-				return errors.Wrap(err, "failed to insert new record")
+				return fmt.Errorf("failed to insert new record: %w", err)
 			}
 			return nil
 		} else {
 			// Error case
-			return errors.Wrap(err, "failed to get existing stat")
+			return fmt.Errorf("failed to get existing stat: %w", err)
 		}
 	}
 	_, err = conn.Exec(ctx, `
@@ -56,7 +57,7 @@ SET message_count = message_count + 1
 WHERE id = $1
 `, existingLogId)
 	if err != nil {
-		return errors.Wrap(err, "failed to increment message stat")
+		return fmt.Errorf("failed to increment message stat: %w", err)
 	}
 
 	return nil
@@ -65,7 +66,7 @@ WHERE id = $1
 func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]*db.DiscordUsageStat, error) {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get pool connection")
+		return nil, fmt.Errorf("failed to get pool connection: %w", err)
 	}
 	defer conn.Release()
 
@@ -78,7 +79,7 @@ ORDER BY message_count DESC
 LIMIT 5
 `, guildId, reportMonth)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to pull top post stats")
+		return nil, fmt.Errorf("failed to pull top post stats: %w", err)
 	}
 	return stats, nil
 }
@@ -86,12 +87,12 @@ LIMIT 5
 func (s Stats) RemoveMonthActivity(ctx context.Context, reportMonth string) error {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
-		return errors.Wrap(err, "failed to get pool connection")
+		return fmt.Errorf("failed to get pool connection: %w", err)
 	}
 	defer conn.Release()
 	_, err = conn.Exec(ctx, "DELETE FROM discord_usage_stats WHERE report_month = $1", reportMonth)
 	if err != nil {
-		return errors.Wrap(err, "failed to delete usage stats")
+		return fmt.Errorf("failed to delete usage stats: %w", err)
 	}
 	return nil
 }

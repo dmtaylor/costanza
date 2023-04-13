@@ -8,7 +8,6 @@ import (
 
 	"github.com/alecthomas/participle/v2"
 	"github.com/alecthomas/participle/v2/lexer"
-	"github.com/pkg/errors"
 
 	"github.com/dmtaylor/costanza/internal/roller"
 )
@@ -101,7 +100,7 @@ func (o Operator) Eval(l, r int) (*DNotationResult, error) {
 	case OpDiv:
 		value = l / r
 	default:
-		return nil, errors.Errorf("invalid operator: %s", reverseOperatorMap[o])
+		return nil, fmt.Errorf("invalid operator %s", reverseOperatorMap[o])
 	}
 	return &DNotationResult{
 		Value:    value,
@@ -238,11 +237,11 @@ func getLexer() (*lexer.StatefulDefinition, error) {
 func NewDNotationParser() (*DNotationParser, error) {
 	localLexer, err := getLexer()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to build lexer")
+		return nil, fmt.Errorf("failed to build lexer: %w", err)
 	}
 	parser, err := participle.Build[Expression](participle.Lexer(localLexer))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to build parser")
+		return nil, fmt.Errorf("failed to build parser: %w", err)
 	}
 	return &DNotationParser{
 		roller: roller.NewBaseRoller(),
@@ -259,7 +258,7 @@ func (p *DNotationParser) DoParse(input string) (*DNotationResult, error) {
 	expr, err := p.parser.ParseString("", input)
 	p.lock.Unlock()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse string")
+		return nil, fmt.Errorf("failed to parse string: %w", err)
 	}
 	return expr.Eval(p.roller)
 }

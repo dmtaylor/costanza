@@ -2,9 +2,9 @@
 package config
 
 import (
+	"fmt"
 	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -59,12 +59,12 @@ func LoadConfig() error {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			log.Printf("config file not found. Continuing...\n")
 		} else {
-			return errors.Wrap(err, "failed to load config file")
+			return fmt.Errorf("failed to load config file: %w", err)
 		}
 	}
 	err = viper.Unmarshal(&GlobalConfig)
 	if err != nil {
-		return errors.Wrap(err, "failed to unmarshal config")
+		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 	for _, listenConfig := range GlobalConfig.Discord.ListenConfigs {
 		GlobalConfig.Discord.ListenChannelSet[listenConfig.GuildId] = true

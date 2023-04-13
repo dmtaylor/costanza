@@ -2,13 +2,13 @@ package quotes
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 )
 
 const GET_QUOTE_QUERY = `
@@ -28,12 +28,12 @@ func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngine, error) {
 	ctx := context.Background()
 	conn, err := connPool.Acquire(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get connection")
+		return nil, fmt.Errorf("failed to get connection: %w", err)
 	}
 	defer conn.Release()
 	size, err := getQuoteCount(ctx, conn.Conn())
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get quote count")
+		return nil, fmt.Errorf("failed to get quote count: %w", err)
 	}
 	engine := QuoteEngine{
 		rng:    rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -52,7 +52,7 @@ func (q *QuoteEngine) GetQuoteSql(ctx context.Context) (string, error) {
 	var result string
 	err := q.dbPool.QueryRow(ctx, GET_QUOTE_QUERY, idx).Scan(&result)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to query quote")
+		return "", fmt.Errorf("failed to get query count: %w", err)
 	}
 	return result, nil
 }
@@ -61,7 +61,7 @@ func getQuoteCount(ctx context.Context, conn *pgx.Conn) (uint, error) {
 	var size uint
 	err := conn.QueryRow(ctx, "SELECT COUNT(*) FROM quotes").Scan(&size)
 	if err != nil {
-		return 0, errors.Wrap(err, "query failed")
+		return 0, fmt.Errorf("query failed: %w", err)
 	}
 	return size, nil
 }

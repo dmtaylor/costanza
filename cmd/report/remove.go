@@ -2,9 +2,9 @@ package report
 
 import (
 	"context"
+	"fmt"
 	"log"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/dmtaylor/costanza/config"
@@ -21,16 +21,16 @@ var removeCmd = &cobra.Command{
 func removeStats(cmd *cobra.Command, args []string) error {
 	app, err := config.LoadApp()
 	if err != nil {
-		return errors.Wrap(err, "failed to load app state")
+		return fmt.Errorf("failed to load app state: %w", err)
 	}
 	month, err := cmd.Flags().GetString("month")
 	if err != nil {
-		return errors.Wrap(err, "error getting month")
+		return fmt.Errorf("error getting month: %w", err)
 	}
 	log.Printf("Deleting usage activity for month %s...", month)
 	err = app.Stats.RemoveMonthActivity(context.Background(), month)
 	if err != nil {
-		return errors.Wrap(err, "failed to remove stats for month "+month)
+		return fmt.Errorf("failed to remove stats for month %s: %w", month, err)
 	}
 	log.Printf("Successfully removed stats for %s", month)
 

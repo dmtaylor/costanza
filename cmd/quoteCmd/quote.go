@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/dmtaylor/costanza/config"
@@ -35,20 +34,20 @@ func init() {
 func runQuote(cmd *cobra.Command, args []string) error {
 	err := config.LoadConfig()
 	if err != nil {
-		return errors.Wrap(err, "failed to load config")
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 	pool, err := pgxpool.New(context.Background(), config.GlobalConfig.Db.Connection)
 	if err != nil {
-		return errors.Wrap(err, "failed to build conn pool")
+		return fmt.Errorf("failed to build conn pool: %w", err)
 	}
 	engine, err := quotes.NewQuoteEngine(pool)
 	if err != nil {
-		return errors.Wrap(err, "failed to build engine")
+		return fmt.Errorf("failed to build engine: %w", err)
 	}
 	for i := uint(0); i < n; i++ {
 		quote, err := engine.GetQuoteSql(context.Background())
 		if err != nil {
-			return errors.Wrap(err, "failed to get quote")
+			return fmt.Errorf("failed to get quote: %w", err)
 		}
 		fmt.Printf("%d: %s\n", i+1, quote)
 	}

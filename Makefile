@@ -22,7 +22,7 @@ docker-run-dev: tests ${DEV_DB_DIR}
 
 docker-restart-dev: tests ${DEV_DB_DIR}
 	docker-compose -f docker-compose.yml -f docker-compose.dev.yml -p costanza-dev -- build --no-cache
-	docker-compose -f docker-compose.yml -f docker-compose.dev.yml -p costanza-dev -- up --build --force-recreate --no-deps -d
+	docker-compose -f docker-compose.yml -f docker-compose.dev.yml -p costanza-dev -- up --build --force-recreate --no-deps
 
 docker-build-prod: tests
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml -p costanza build
@@ -32,7 +32,7 @@ docker-run-prod: tests ${PROD_DB_DIR}
 
 docker-restart-prod: tests ${PROD_DB_DIR}
 	docker-compose -f docker-compose.yml -f docker-compose.prod.yml -p costanza -- build --no-cache
-	docker-compose -f docker-compose.yml -f docker-compose.prod.yml -p costanza -- up --build --force-recreate --no-deps -d
+	docker-compose -f docker-compose.yml -f docker-compose.prod.yml -p costanza -- up --build --force-recreate --no-deps -d # run prod in background
 tests: all
 	go test -v ./...
 

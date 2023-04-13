@@ -2,6 +2,8 @@
 package listen
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -10,7 +12,6 @@ import (
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -55,26 +56,26 @@ func init() {
 func newServer() (*Server, error) {
 	app, err := config.LoadApp()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to load server conf")
+		return nil, fmt.Errorf("failed to load server conf: %w", err)
 	}
 	framedPattern, err := regexp.Compile(`Framed\s+#\d+\s+🎥 🟩 ⬛ ⬛ ⬛ ⬛ ⬛`)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compile framed pattern")
+		return nil, fmt.Errorf("failed to compile framed pattern: %w", err)
 	}
 
 	tradlePattern, err := regexp.Compile(`#Tradle\s.*#\d+\s1/6`)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compile tradle pattern")
+		return nil, fmt.Errorf("failed to compile tradle pattern: %w", err)
 	}
 
 	wordlePattern, err := regexp.Compile(`#Wordle\s#?\d+\s+1/6`)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compile wordle pattern")
+		return nil, fmt.Errorf("failed to compile wordle pattern: %w", err)
 	}
 
 	heardlePattern, err := regexp.Compile(`#Heardle\s#\d+\s+🔊🟩⬜⬜⬜⬜⬜\n`)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compile heardle pattern")
+		return nil, fmt.Errorf("failed to compile heardle pattern: %w", err)
 	}
 
 	return &Server{

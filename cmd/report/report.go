@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"go.uber.org/multierr"
 
@@ -48,11 +47,11 @@ func init() {
 func runStats(cmd *cobra.Command, args []string) error {
 	app, err := config.LoadApp()
 	if err != nil {
-		return errors.Wrap(err, "failed to load app state")
+		return fmt.Errorf("failed to load app state: %w", err)
 	}
 	month, err := cmd.PersistentFlags().GetString("month")
 	if err != nil {
-		return errors.Wrap(err, "error getting month")
+		return fmt.Errorf("error getting month: %w", err)
 	}
 	log.Printf("starting getting stats for %s", month)
 	sess, err := discordgo.New("Bot " + config.GlobalConfig.Discord.Token)
@@ -78,14 +77,14 @@ func runStats(cmd *cobra.Command, args []string) error {
 func (s statsHandle) reportMessageStats(ctx context.Context, listenConfig config.ListenConfig, month string) error {
 	guildId, err := strconv.ParseUint(listenConfig.GuildId, 10, 64)
 	if err != nil {
-		return errors.Wrap(err, "unable to parse guild id "+listenConfig.GuildId)
+		return fmt.Errorf("unable to parse guild id %s: %w", listenConfig.GuildId, err)
 	}
 
 	topUsers, err := s.app.Stats.GetLeaders(ctx, guildId, month)
 	builder := strings.Builder{}
 	_, err = builder.WriteString("Top posters for the month are:\n")
 	if err != nil {
-		return errors.Wrap(err, "failed to build string")
+		return fmt.Errorf("failed to build string: %w", err)
 	}
 	if len(topUsers) == 0 {
 		// return early if there are no top posters for guild
@@ -94,14 +93,14 @@ func (s statsHandle) reportMessageStats(ctx context.Context, listenConfig config
 	for i, userStat := range topUsers {
 		user, err := s.sess.User(strconv.FormatUint(userStat.UserId, 10))
 		if err != nil {
-			return errors.Wrap(err, "unable to get user")
+			return fmt.Errorf("unable to get user: %w", err)
 		}
 		line := fmt.Sprintf("#%d: %s with %d messages\n", i+1, user.Mention(), userStat.MessageCount)
 		_, err = builder.WriteString(line)
 	}
 	_, err = s.sess.ChannelMessageSend(listenConfig.ReportChannelId, builder.String())
 	if err != nil {
-		return errors.Wrap(err, "failed to send message")
+		return fmt.Errorf("failed to send message: %w", err)
 	}
 
 	return nil

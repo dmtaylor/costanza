@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/dmtaylor/costanza/internal/parser"
@@ -38,7 +37,7 @@ func runRoll(cmd *cobra.Command, args []string) error {
 	input := strings.Join(args, " ")
 	rollParser, err := parser.NewDNotationParser()
 	if err != nil {
-		return errors.Wrap(err, "failed to create rollParser")
+		return fmt.Errorf("failed to create rollParser: %w", err)
 	}
 	if printEBNF {
 		fmt.Printf("EBNF:\n")
@@ -46,7 +45,7 @@ func runRoll(cmd *cobra.Command, args []string) error {
 	} else {
 		results, err := rollParser.DoParse(input)
 		if err != nil {
-			return errors.Wrap(err, "failed to do parse")
+			return fmt.Errorf("failed to do parse: %w", err)
 		}
 		fmt.Printf("%s = %s\n", results.StrValue, strconv.Itoa(results.Value))
 	}

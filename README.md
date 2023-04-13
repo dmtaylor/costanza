@@ -28,6 +28,8 @@ To spin it up in a container (including the DB & running all migrations), use `d
 docker-compose installed for this. Running via docker-compose requires directories `/var/costanza/db_data` & `/var/costanza_dev/db_data`
 for the Postgres volume mounts. Using the Makefile targets for docker-compose based deployments should ensure these directories are created as needed.
 
+There is a Makefile & [magefiles](https://magefile.org) for commonly used targets.
+
 ## Usage
 Costanza has the following subcommands:
 - listen: listen to incoming Discord events & respond appropriately. This is the main mode of operation

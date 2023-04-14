@@ -21,7 +21,7 @@ Costanza commands:
 	"```"
 
 // help handler function for help messages
-func (s *Server) help(sess *discordgo.Session, m *discordgo.MessageCreate) {
+func help(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}

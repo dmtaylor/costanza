@@ -109,13 +109,14 @@ func runListen(cmd *cobra.Command, args []string) error {
 		}
 		log.Printf("Bot started, CTL-C to quit")
 	})
-	dg.AddHandler(server.help)
+	dg.AddHandler(help)
 	dg.AddHandler(server.echoQuote)
 	dg.AddHandler(server.echoInsomniac)
 	dg.AddHandler(server.dispatchRollCommands)
 	dg.AddHandler(server.dailyWinReact)
 	dg.AddHandler(server.logMessageActivity)
-	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages
+	dg.AddHandler(welcomeMessage)
+	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentsGuildMembers
 
 	err = dg.Open()
 	if err != nil {

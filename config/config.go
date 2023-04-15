@@ -19,11 +19,13 @@ type ListenConfig struct {
 }
 
 type DiscordConfig struct {
-	Token            string
-	InsomniacIds     []string       `mapstructure:"insomniac_ids"`
-	InsomniacRoles   []string       `mapstructure:"insomniac_roles"`
-	ListenConfigs    []ListenConfig `mapstructure:"listen_configs"`
-	ListenChannelSet map[string]bool
+	AppId                   string         `mapstructure:"app_id"`
+	Token                   string         `mapstructure:"token"`
+	InsomniacIds            []string       `mapstructure:"insomniac_ids"`
+	InsomniacRoles          []string       `mapstructure:"insomniac_roles"`
+	ListenConfigs           []ListenConfig `mapstructure:"listen_configs"`
+	DefaultWeatherLocations []string       `mapstructure:"default_weather_locations"`
+	ListenChannelSet        map[string]bool
 }
 
 type DbConfig struct {
@@ -46,11 +48,10 @@ func SetConfigDefaults() {
 func LoadConfig() error {
 	GlobalConfig = Config{
 		Discord: DiscordConfig{
-			Token:            "fake-default-value",
-			InsomniacIds:     nil,
-			InsomniacRoles:   nil,
-			ListenConfigs:    nil,
-			ListenChannelSet: make(map[string]bool, 0),
+			Token:          "fake-default-value",
+			InsomniacIds:   nil,
+			InsomniacRoles: nil,
+			ListenConfigs:  nil,
 		},
 		Db: DbConfig{Connection: "postgres://costanza:myvoiceismypassportverifyme@localhost:5432/costanza?sslmode=disable"},
 	}
@@ -63,6 +64,7 @@ func LoadConfig() error {
 		}
 	}
 	err = viper.Unmarshal(&GlobalConfig)
+	GlobalConfig.Discord.ListenChannelSet = make(map[string]bool, len(GlobalConfig.Discord.ListenConfigs))
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}

@@ -5,6 +5,8 @@ services:
     image: costanza-dev:latest
   cron:
     image: costanza-dev:latest
+  register:
+    image: costanza-dev:latest
   db:
     ports:
       - "54321:5432"

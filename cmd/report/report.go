@@ -55,6 +55,14 @@ func runStats(cmd *cobra.Command, args []string) error {
 	}
 	log.Printf("starting getting stats for %s", month)
 	sess, err := discordgo.New("Bot " + config.GlobalConfig.Discord.Token)
+	if err != nil {
+		return fmt.Errorf("failed to get discord session: %w", err)
+	}
+	err = sess.Open()
+	if err != nil {
+		return fmt.Errorf("failed to open session: %w", err)
+	}
+	defer sess.Close()
 	handle := statsHandle{app: app, sess: sess}
 	var wg sync.WaitGroup
 	var subErrors error = nil

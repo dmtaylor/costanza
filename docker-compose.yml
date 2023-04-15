@@ -16,6 +16,8 @@ services:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully
+      register:
+        condition: service_completed_successfully
     healthcheck:
       test: curl -f http://localhost:8585/api/v1/healthcheck || exit 1
       interval: 30s
@@ -33,6 +35,12 @@ services:
         condition: service_started
     command: ["/usr/sbin/cron", "-f", "-L", "15"]
     user: root
+  register:
+    secrets:
+      - source: costanza_config
+        target: /etc/costanza/config.toml
+    command:
+      ["/home/costanza/costanza", "register"]
 
   db:
     image: 'postgres:latest'

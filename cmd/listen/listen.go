@@ -97,7 +97,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 		log.Printf("failed to start bot: %s\n", err)
 		return err
 	}
-	dg.AddHandler(func(sess *discordgo.Session, ready *discordgo.Ready) {
+	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
 		if healthcheckEnabled {
 			http.HandleFunc("/api/v1/healthcheck", healthcheck)
 			go func() {
@@ -115,6 +115,7 @@ func runListen(cmd *cobra.Command, args []string) error {
 	dg.AddHandler(server.dispatchRollCommands)
 	dg.AddHandler(server.dailyWinReact)
 	dg.AddHandler(server.logMessageActivity)
+	dg.AddHandler(server.weatherCommand)
 	dg.AddHandler(welcomeMessage)
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentsGuildMembers
 

@@ -85,6 +85,20 @@ func (Docker) Restart(env string, background bool) error {
 	return cmd.Run()
 }
 
+func (Docker) Status(env string) error {
+	if env == "" {
+		env = devEnv
+	}
+	if env != prodEnv && env != devEnv {
+		return fmt.Errorf("invalid environment: %s, only \"prod\" and \"dev\" are valid choices")
+	}
+	dockerAppName := getDockerAppName(env)
+	cmd := exec.Command("docker-compose", "-f", "docker-compose.yml", "-f", "docker-compose."+env+".yml", "-p", dockerAppName, "--", "ps")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func dbDir(env string) error {
 	var dirname string
 	if env == devEnv {

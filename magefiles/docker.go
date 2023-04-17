@@ -110,7 +110,7 @@ func dbDir(env string) error {
 	}
 	_, err := os.Stat(dirname)
 	if os.IsNotExist(err) {
-		cmd := exec.Command("mkdir", "--parents", "--verbose", dirname)
+		cmd := exec.Command("sudo", "mkdir", "--parents", "--verbose", dirname)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		return cmd.Run()

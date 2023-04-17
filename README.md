@@ -19,7 +19,7 @@ $ go build
 $ ./costanza listen
 ```
 
-You can also build the binary by running `make`.
+You can also build the binary by running `make` or `mage build`.
 
 Database migrations are contained under `migrations`. [go-migrate](https://github.com/golang-migrate/migrate) can be used to run them against the
 DB (and is used by docker-compose to run the migrations in the containerized setup), but any migration tool supporting up/down operations should be fine.
@@ -33,6 +33,7 @@ There is a Makefile & [magefiles](https://magefile.org) for commonly used target
 ## Usage
 Costanza has the following subcommands:
 - listen: listen to incoming Discord events & respond appropriately. This is the main mode of operation
+- register: registers the slash commands for the application.
 - roll: runs the dice roller using the positional arguments. This is useful for testing out changes to the parser on the command line
 - quote: prints a quote to stdout. This is useful for testing changes to quote retrieval.
 - cfg: loads configuration from environment. This is useful in debugging issues loading configuration.
@@ -42,13 +43,17 @@ Costanza has the following subcommands:
 The following behaviors are present in listen mode:
 - If Costanza is @-ed, it will respond with a random quote from a slightly curated list of George Costanza quotes
 - If a user posts between 12:30 AM & 6:00 AM & their user ID is included in `INSOMNIAC_IDS` or they have a role listed in `INSOMNIAC_ROLES`, they get a gentle reminder to sleep
-- If a message is prefixed with `!roll`, the text following is parsed as a d-notation roll and evaluated.
-- If a message is prefixed with `!srroll`, the text following is parsed and evaluated as d-notation, and the resulting value is run as a Shadowrun roll.
-- If a message is prefixed with `!wodroll`, the text following is parsed and evaluated as d-notation, and the resulting value is run as a World of Darkness roll.
-    - The roll can be modified with the strings `8again`, `9again`, and `chance`. Rolls of < 1 dice are ran as chance rolls
-- If a message is prefixed with `!dhtest`, the text following is parsed and evaluated as d-notation, and the resulting value is run as a Dark Heresy/Fantasy
-Flight Warhammer 40k RPG skill test (i.e. over or under 1d100)
-- If a message is prefixed with `!chelp`, brief usage details are sent.
+- A welcome message is sent when a user joins the guild.
+
+Costanza has these slash commands:
+- `/chelp`: sends brief usage details.
+- `/roll {roll value}`: argument text is parsed as a d-notation roll and evaluated.
+- `/srroll {roll value}`: argument text is parsed & evaluated as d-notation, and the resulting value is run as a Shadowrun roll.
+- `/wodroll {roll value} [chance] [9again] [8again]`: argument text is parsed and evaluated as d-notation, and the resulting value is run as a World of Darkness roll. Optional arguments indicate
+if the roll is a chance die, has 8-again, or 9-again. Rolls of < 1 dice are ran as chance rolls.
+- `/dhtest {roll value}`: argument text is parsed and evaluated as d-notation, and the resulting value is run as a Dark Heresy/Fantasy Flight Warhammer 40k
+RPG skill test (i.e. over or under 1d100)
+- `/weather [location]`: gets current weather conditions for given location, or defaults from config file. Uses [wttr.in](https://wttr.in/) for weather data.
 
 ## Environment Variables
 

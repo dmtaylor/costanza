@@ -10,270 +10,285 @@ import (
 	"github.com/dmtaylor/costanza/internal/roller"
 )
 
+const rollCommandName = "roll"
+const shadowrunCommandName = "srroll"
+const worldOfDarknessCommandName = "wodroll"
+const darkHeresyTestCommandName = "dhtest"
+const rollOptionName = "roll"
+
+var rollSlashCommand = &discordgo.ApplicationCommand{
+	Name:        rollCommandName,
+	Type:        discordgo.ChatApplicationCommand,
+	Description: "Parse and execute d-notation roll",
+	Options: []*discordgo.ApplicationCommandOption{
+		{
+			Name:        rollOptionName,
+			Description: "Value to roll",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+	},
+}
+
+var shadowrunRollSlashCommand = &discordgo.ApplicationCommand{
+	Name:        shadowrunCommandName,
+	Type:        discordgo.ChatApplicationCommand,
+	Description: "Parse and execute d-notation roll as a Shadowrun test",
+	Options: []*discordgo.ApplicationCommandOption{
+		{
+			Name:        rollOptionName,
+			Description: "Value to roll",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+	},
+}
+
+var worldOfDarknessCommand = &discordgo.ApplicationCommand{
+	Name:        worldOfDarknessCommandName,
+	Type:        discordgo.ChatApplicationCommand,
+	Description: "Parse and execute d-notation roll as a World of Darkness test, including optional modifiers",
+	Options: []*discordgo.ApplicationCommandOption{
+		{
+			Name:        rollOptionName,
+			Description: "Value to roll",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+		{
+			Name:        "chance",
+			Description: "Is a chance roll",
+			Type:        discordgo.ApplicationCommandOptionBoolean,
+			Required:    false,
+		},
+		{
+			Name:        "9again",
+			Description: "Roll has 9-again modifier",
+			Type:        discordgo.ApplicationCommandOptionBoolean,
+			Required:    false,
+		},
+		{
+			Name:        "8again",
+			Description: "Roll has 8-again modifier",
+			Type:        discordgo.ApplicationCommandOptionBoolean,
+			Required:    false,
+		},
+	},
+}
+
+var darkHeresyTestSlashCommand = &discordgo.ApplicationCommand{
+	Name:        darkHeresyTestCommandName,
+	Type:        discordgo.ChatApplicationCommand,
+	Description: "Parse and execute d-notation roll as a Dark Heresy skill test",
+	Options: []*discordgo.ApplicationCommandOption{
+		{
+			Name:        rollOptionName,
+			Description: "Value to roll",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    true,
+		},
+	},
+}
+
 // dispatchRollCommands Main entrypoint into handling roll commands. Reads the first word of the message content
 // and calls the appropriate method for performing a roll. Update this to add additional message prefixes for additional
 // roll types.
-func (s *Server) dispatchRollCommands(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
+func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Ensure we only get options from slash commands
+	if i.Type != discordgo.InteractionApplicationCommand {
 		return
 	}
-	command := strings.Fields(m.Message.Content)
-	if len(command) < 1 {
+	if i.User != nil && i.User.Bot {
 		return
 	}
-
-	switch command[0] {
-	case "!roll":
-		s.doDNotationRoll(sess, m, strings.Join(command[1:], " "))
-	case "!srroll":
-		s.doShadowrunRoll(sess, m, strings.Join(command[1:], " "))
-	case "!wodroll":
-		s.doWodRoll(sess, m, command[1:])
-	case "!dhtest":
-		s.doDHTestRoll(sess, m, strings.Join(command[1:], " "))
+	if i.Member != nil && i.Member.User.Bot {
+		return
 	}
-}
+	options := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(i.ApplicationCommandData().Options))
+	for _, option := range i.ApplicationCommandData().Options {
+		options[option.Name] = option
+	}
+	var rollInput string
+	if o, ok := options[rollOptionName]; ok {
+		rollInput = o.StringValue()
+	}
 
-func (s *Server) doDNotationRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
-	result, err := s.app.DNotationParser.DoParse(rollStr)
+	var result string
+	var err error
+	switch i.ApplicationCommandData().Name {
+	case rollCommandName:
+		if rollInput == "" {
+			log.Printf("missing roll input for interaction, guild %s channel %s user %s", i.GuildID, i.ChannelID, i.User.String())
+			return
+		}
+		result, err = s.doDNotationRoll(rollInput)
+	case shadowrunCommandName:
+		if rollInput == "" {
+			log.Printf("missing roll input for interaction, guild %s channel %s user %s", i.GuildID, i.ChannelID, i.User.String())
+			return
+		}
+		result, err = s.doShadowrunRoll(rollInput)
+	case worldOfDarknessCommandName:
+		result, err = s.doWodRoll(rollInput, options) // pass in option set for WoD specific options
+		if o, ok := options["chance"]; ok {
+			if o.BoolValue() {
+				rollInput = rollInput + " chance"
+			}
+		}
+		if o, ok := options["8again"]; ok {
+			if o.BoolValue() {
+				rollInput = rollInput + " 8again"
+			}
+		}
+		if o, ok := options["9again"]; ok {
+			if o.BoolValue() {
+				rollInput = rollInput + " 9again"
+			}
+		}
+	case darkHeresyTestCommandName:
+		result, err = s.doDHTestRoll(rollInput)
+	default:
+		return
+	}
 	if err != nil {
-		log.Printf("error parsing string: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			fmt.Sprintf("I was unable to understand your roll \"%s\". Why must there always be a problem?", rollStr),
-			m.Reference(),
-		)
+		log.Printf("failed to process roll %s: %s\n", rollInput, err)
+		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("I was unable to handle your roll \"%s\". Why must there always be a problem?", rollInput),
+			},
+		})
 		if err != nil {
-			log.Printf("error sending message: %s\n", err)
+			log.Printf("failed to send interaction response: %s", err)
 		}
 		return
 	}
-	response := fmt.Sprintf("%s = %d", result.StrValue, result.Value)
-	_, err = sess.ChannelMessageSendReply(
-		m.ChannelID,
-		response,
-		m.Reference(),
-	)
+	err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("%s → %s", rollInput, result),
+		},
+	})
 	if err != nil {
-		log.Printf("error sending message: %s\n", err)
+		log.Printf("failed to send interaction response for interaction %s: %s", i.Interaction.ID, err)
 	}
 }
 
-func (s *Server) doShadowrunRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
-	rollCount, err := s.app.DNotationParser.DoParse(rollStr)
+func (s *Server) doDNotationRoll(input string) (string, error) {
+	res, err := s.app.DNotationParser.DoParse(input)
 	if err != nil {
-		log.Printf("error parsing string: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			fmt.Sprintf("I was unable to understand your roll \"%s\". Why must there always be a problem?", rollStr),
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
+		return "", fmt.Errorf("failed to parse roll: %w", err)
+	}
+	return fmt.Sprintf("%s = %d", res.StrValue, res.Value), nil
+}
+
+func (s *Server) doShadowrunRoll(input string) (string, error) {
+	rollCount, err := s.app.DNotationParser.DoParse(input)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse roll %s, %w", input, err)
 	}
 	params := roller.GetSrParams()
-	result, err := s.app.ThresholdRoller.DoThresholdRoll(rollCount.Value, roller.SrDieSides, params)
+	rollResult, err := s.app.ThresholdRoller.DoThresholdRoll(rollCount.Value, roller.SrDieSides, params)
 	if err != nil {
-		log.Printf("failed to do threshold roll: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to perform your roll. Why must there always be a problem?",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
+		return "", fmt.Errorf("failed to run threshold roll: %w", err)
 	}
-	resultStr, err := result.Repr()
+	rollRepr, err := rollResult.Repr()
 	if err != nil {
-		log.Printf("failed to get string repr: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to say what your roll looks like. Why must there always be a problem?",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
+		return "", fmt.Errorf("failed to get roll representation from %s: %w", input, err)
 	}
-	response := fmt.Sprintf("%s = %d", resultStr, result.Value())
-	_, err = sess.ChannelMessageSendReply(
-		m.ChannelID,
-		response,
-		m.Reference(),
-	)
+	var res strings.Builder
+	hitStr := "hit"
+	if rollResult.Value() != 1 {
+		hitStr = hitStr + "s"
+	}
+	_, err = res.WriteString(fmt.Sprintf("%s = %d %s", rollRepr, rollResult.Value(), hitStr))
 	if err != nil {
-		log.Printf("error sending message: %s\n", err)
+		return "", fmt.Errorf("failed to write repr string %s to buffer: %w", rollRepr, err)
 	}
-	switch roller.GetGlitchStatus(result) {
+	switch roller.GetGlitchStatus(rollResult) {
 	case roller.SrGlitch:
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"You glitched! I can't believe this! What was wrong with it? What didn't you like about it?",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
+		_, err = res.WriteString("\nYou glitched! I can't believe this! What was wrong with it? What didn't you like about it?")
 	case roller.SrCritGlitch:
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"You critically glitched! I don't want hope. Hope is killing me. My dream is to become hopeless. When you're hopeless, you don't care, and when you don't care, that indifference makes you attractive.",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
+		_, err = res.WriteString("\nYou critically glitched! I don't want hope. Hope is killing me. My dream is to become hopeless. When you're hopeless, you don't care, and when you don't care, that indifference makes you attractive.")
 	}
+	if err != nil {
+		return "", fmt.Errorf("failed to write optional glitch status to buffer: %w", err)
+	}
+	return res.String(), nil
 }
 
-func (s *Server) doWodRoll(sess *discordgo.Session, m *discordgo.MessageCreate, tokens []string) {
-	params, isChance, rollStr, err := roller.GetWodRollParams(tokens)
-	if err != nil {
-		log.Printf("failed getting wod params: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to get the params for your roll. Why must there always be a problem?",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
+func (s *Server) doWodRoll(input string, options map[string]*discordgo.ApplicationCommandInteractionDataOption) (string, error) {
+	var isChance, isEightAgain, isNineAgain bool
+	if o, ok := options["chance"]; ok {
+		isChance = o.BoolValue()
 	}
+	if o, ok := options["8again"]; ok {
+		isEightAgain = o.BoolValue()
+	}
+	if o, ok := options["9again"]; ok {
+		isNineAgain = o.BoolValue()
+	}
+	params := roller.NewGetWodRollParams(isNineAgain, isEightAgain)
 	if isChance {
-		s.doWodChanceRoll(sess, m, params)
-		return
-	}
-	rollCount, err := s.app.DNotationParser.DoParse(rollStr)
-	if err != nil {
-		log.Printf("failed getting number or dice to roll: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to figure out the number of dice to roll. Life can be so confusing. I..I'm searching for answers, anywhere.",
-			m.Reference(),
-		)
+		return s.doWodChanceRoll(params)
+	} else {
+		rollCount, err := s.app.DNotationParser.DoParse(input)
 		if err != nil {
-			log.Printf("error sending message: %s\n", err)
+			return "", fmt.Errorf("failed to parse roll input %s: %w", input, err)
 		}
-		return
-	}
-	if rollCount.Value < 1 {
-		s.doWodChanceRoll(sess, m, params)
-		return
-	}
-	roll, err := s.app.ThresholdRoller.DoThresholdRoll(rollCount.Value, roller.WodDieSides, params)
-	if err != nil {
-		log.Printf("failed doing wod threshold roll: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to complete your roll. Why must there always be a problem?",
-			m.Reference(),
-		)
+		if rollCount.Value < 1 {
+			return s.doWodChanceRoll(params)
+		}
+		roll, err := s.app.ThresholdRoller.DoThresholdRoll(rollCount.Value, roller.WodDieSides, params)
 		if err != nil {
-			log.Printf("error sending message: %s\n", err)
+			return "", fmt.Errorf("failed to get wod threshold roll for %d dice: %w", rollCount.Value, err)
 		}
-		return
-	}
-	rollResStr, err := roll.Repr()
-	if err != nil {
-		log.Printf("failed to get result string: %s\n", err)
-		return
-	}
-	response := fmt.Sprintf("%s = %d hits", rollResStr, roll.Value())
-	if roll.Value() == 0 {
-		response = response + "\nWould you like to critically fail?"
-	}
-	_, err = sess.ChannelMessageSendReply(
-		m.ChannelID,
-		response,
-		m.Reference(),
-	)
-	if err != nil {
-		log.Printf("error sending message: %s\n", err)
+		rollResStr, err := roll.Repr()
+		if err != nil {
+			return "", fmt.Errorf("failed to get representation for roll %v: %w", roll, err)
+		}
+
+		hitStr := "hit"
+		if roll.Value() != 1 {
+			hitStr = hitStr + "s"
+		}
+		result := fmt.Sprintf("%s = %d %s", rollResStr, roll.Value(), hitStr)
+		if roll.Value() == 0 {
+			result = result + "\nWould you like to critically fail?"
+		}
+		return result, nil
 	}
 }
 
-func (s *Server) doWodChanceRoll(sess *discordgo.Session, m *discordgo.MessageCreate, params roller.ThresholdParameters) {
+func (s *Server) doWodChanceRoll(params roller.ThresholdParameters) (string, error) {
 	roll, err := s.app.ThresholdRoller.DoThresholdRoll(1, roller.WodDieSides, params)
 	if err != nil {
-		log.Printf("failed doing wod chance roll: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to complete your chance roll. Why must there always be a problem?",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
+		return "", fmt.Errorf("failed to execute chance roll: %w", err)
 	}
 	rollResStr, err := roll.Repr()
 	if err != nil {
-		log.Printf("failed to get string representation: %s\n", err)
-		return
+		return "", fmt.Errorf("failed to get string representation of roll: %w", err)
 	}
-	response := fmt.Sprintf("%s = %d hits", rollResStr, roll.Value())
-	if roll.Value() == 0 {
-		response = response + "\nYou critically failed! Radiating waves of pain."
-	}
-	_, err = sess.ChannelMessageSendReply(
-		m.ChannelID,
-		response,
-		m.Reference(),
-	)
-	if err != nil {
-		log.Printf("error sending message: %s\n", err)
+	result := fmt.Sprintf("%s = %d", rollResStr, roll.Value())
+	if roll.Value() < 1 {
+		result = result + "\nYou critically failed! Radiating waves of pain."
 	}
 
+	return result, nil
 }
 
-func (s *Server) doDHTestRoll(sess *discordgo.Session, m *discordgo.MessageCreate, rollStr string) {
-	threshold, err := s.app.DNotationParser.DoParse(rollStr)
+func (s *Server) doDHTestRoll(input string) (string, error) {
+	threshold, err := s.app.DNotationParser.DoParse(input)
 	if err != nil {
-		log.Printf("error parsing string: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			fmt.Sprintf("I was unable to understand your roll \"%s\". Why must there always be a problem?", rollStr),
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
+		return "", fmt.Errorf("failed to parse input %s: %w", input, err)
 	}
 	roll, err := s.app.DNotationParser.DoParse("1d100")
 	if err != nil {
-		log.Printf("error doing d100 roll: %s\n", err)
-		_, err := sess.ChannelMessageSendReply(
-			m.ChannelID,
-			"I was unable to execute the roll. Why must there always be a problem?",
-			m.Reference(),
-		)
-		if err != nil {
-			log.Printf("error sending message: %s\n", err)
-		}
-		return
+		return "", fmt.Errorf("failed to get dh test roll: %w", err)
 	}
-	var result string
 	if roll.Value > threshold.Value {
-		degrees := (roll.Value - threshold.Value) / 10
-		result = fmt.Sprintf("You Fail with %d degrees", degrees)
+		return fmt.Sprintf("Rolled %s: you fail with %d degrees", roll.StrValue, (roll.Value-threshold.Value)/10), nil
 	} else {
-		degrees := (threshold.Value - roll.Value) / 10
-		result = fmt.Sprintf("You Succeed with %d degrees", degrees)
-	}
-	response := fmt.Sprintf("Rolled %s: %s", roll.StrValue, result)
-	_, err = sess.ChannelMessageSendReply(
-		m.ChannelID,
-		response,
-		m.Reference(),
-	)
-	if err != nil {
-		log.Printf("error sending message: %s\n", err)
+		return fmt.Sprintf("Rolled %s: you succeed with %d degrees", roll.StrValue, (threshold.Value-roll.Value)/10), nil
 	}
 }

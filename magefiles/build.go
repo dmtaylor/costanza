@@ -21,6 +21,7 @@ func Build() error {
 		return fmt.Errorf("failed to get update deps: %w", err)
 	}
 	if toUpdate {
+		fmt.Printf("Running build: go build -o %s .\n", appName)
 		cmd := exec.Command("go", "build", "-o", appName, ".")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

@@ -32,7 +32,10 @@ func registerCommands(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open discord connection: %w", err)
 	}
-	defer sess.Close()
+	var closeErr error = nil
+	defer func() {
+		closeErr = sess.Close()
+	}()
 
 	for _, command := range listen.Commands {
 		log.Printf("registering %s", command.Name)
@@ -44,5 +47,5 @@ func registerCommands(cmd *cobra.Command, args []string) error {
 
 	log.Printf("successfully registered all commands")
 
-	return nil
+	return closeErr
 }

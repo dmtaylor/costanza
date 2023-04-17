@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 
 	"github.com/bwmarrin/discordgo"
 
@@ -28,12 +27,6 @@ var weatherSlashCommand = &discordgo.ApplicationCommand{
 			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    false,
 		},
-	},
-}
-
-var httpClientPool = sync.Pool{
-	New: func() any {
-		return new(http.Client)
 	},
 }
 
@@ -67,12 +60,9 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 }
 
 func getWeatherString(locations []string) (string, error) {
-	client := httpClientPool.Get().(*http.Client)
-	defer httpClientPool.Put(client)
-	lock := sync.Mutex{}
 	b := strings.Builder{}
 	for _, location := range locations {
-		res, err := client.Get(weatherBase + "/" + url.PathEscape(location) + "?format=3")
+		res, err := http.Get(weatherBase + "/" + url.PathEscape(location) + "?format=3")
 		if err != nil {
 			return "", fmt.Errorf("failed getting weather data: %w", err)
 		}
@@ -84,9 +74,7 @@ func getWeatherString(locations []string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failure to get body: %w", err)
 		}
-		lock.Lock()
 		_, err = b.Write(body)
-		lock.Unlock()
 		if err != nil {
 			return "", fmt.Errorf("failed to grow buffer: %w", err)
 		}

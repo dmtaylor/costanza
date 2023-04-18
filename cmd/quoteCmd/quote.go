@@ -11,7 +11,7 @@ import (
 	"github.com/dmtaylor/costanza/internal/quotes"
 )
 
-// quoteCmd represents the quote command
+// Cmd represents the quote command
 var Cmd = &cobra.Command{
 	Use:   "quote",
 	Short: "Test getting a quote",

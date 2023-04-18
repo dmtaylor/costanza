@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const GET_QUOTE_QUERY = `
+const getQuoteQuery = `
 SELECT quote
 FROM quotes
 WHERE id = $1
@@ -50,7 +50,7 @@ func (q *QuoteEngine) GetQuoteSql(ctx context.Context) (string, error) {
 	idx := q.rng.Intn(int(q.size))
 	q.lock.Unlock()
 	var result string
-	err := q.dbPool.QueryRow(ctx, GET_QUOTE_QUERY, idx).Scan(&result)
+	err := q.dbPool.QueryRow(ctx, getQuoteQuery, idx).Scan(&result)
 	if err != nil {
 		return "", fmt.Errorf("failed to get query count: %w", err)
 	}

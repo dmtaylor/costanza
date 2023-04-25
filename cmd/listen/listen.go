@@ -77,14 +77,21 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile heardle pattern: %w", err)
 	}
-
+	gamePattern, err := regexp.Compile(`GuessTheGame #\d+\s+🎮 🟩`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile guess the game pattern: %w", err)
+	}
+	episodePattern, err := regexp.Compile(`Episode #\d+\s+📺 🟩 ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ ⬛`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile episode pattern: %w", err)
+	}
 	return &Server{
 		app:              *app,
-		dailyWinPatterns: []*regexp.Regexp{framedPattern, tradlePattern, wordlePattern, heardlePattern},
+		dailyWinPatterns: []*regexp.Regexp{framedPattern, tradlePattern, wordlePattern, heardlePattern, gamePattern, episodePattern},
 	}, nil
 }
 
-func runListen(cmd *cobra.Command, args []string) error {
+func runListen(_ *cobra.Command, _ []string) error {
 	server, err := newServer()
 	if err != nil {
 		log.Printf("failed to build state")

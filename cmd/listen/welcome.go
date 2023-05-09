@@ -1,6 +1,7 @@
 package listen
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -16,6 +17,8 @@ func welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMemberAdd) {
 	if j.User.Bot { // Don't welcome robots
 		return
 	}
+	ctx := context.WithValue(context.Background(), "memberId", j.User.ID)
+	ctx = context.WithValue(ctx, "guildId", j.GuildID)
 
 	channels, err := sess.GuildChannels(j.GuildID)
 	if err != nil {

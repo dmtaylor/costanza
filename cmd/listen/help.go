@@ -1,9 +1,12 @@
 package listen
 
 import (
-	"log"
+	"context"
+	"fmt"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"golang.org/x/exp/slog"
 )
 
 const helpCommandName = "chelp"
@@ -41,6 +44,10 @@ func help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	if i.ApplicationCommandData().Name != helpCommandName {
 		return
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+	ctx = context.WithValue(ctx, "interactionId", i.ID)
+	ctx = context.WithValue(ctx, "commandName", helpCommandName)
 	err := sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
@@ -48,6 +55,6 @@ func help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 		},
 	})
 	if err != nil {
-		log.Printf("failed sending help data: %s", err)
+		slog.ErrorCtx(ctx, fmt.Sprintf("failed sending help data: %s", err))
 	}
 }

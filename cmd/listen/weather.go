@@ -1,16 +1,19 @@
 package listen
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 
 	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const weatherBase = "https://wttr.in"
@@ -34,6 +37,10 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	if i.ApplicationCommandData().Name != weatherCommandName {
 		return
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+	ctx = context.WithValue(ctx, "interactionId", i.ID)
+	ctx = context.WithValue(ctx, "commandName", weatherCommandName)
 	var locations []string
 	for _, option := range i.ApplicationCommandData().Options {
 		if option.Name == "location" {
@@ -43,7 +50,7 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	if len(locations) < 1 {
 		locations = config.GlobalConfig.Discord.DefaultWeatherLocations
 	}
-	msg, err := getWeatherString(locations)
+	msg, err := getWeatherString(ctx, locations)
 	if err != nil {
 		log.Printf("failed getting weather for %v: %s", locations, err)
 		return
@@ -59,9 +66,12 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	}
 }
 
-func getWeatherString(locations []string) (string, error) {
+func getWeatherString(ctx context.Context, locations []string) (string, error) {
 	b := strings.Builder{}
 	for _, location := range locations {
+		if err := util.CheckCtxTimeout(ctx); err != nil {
+			return "", fmt.Errorf("context error: %w", err)
+		}
 		res, err := http.Get(weatherBase + "/" + url.PathEscape(location) + "?format=3")
 		if err != nil {
 			return "", fmt.Errorf("failed getting weather data: %w", err)

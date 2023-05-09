@@ -2,10 +2,11 @@ package listen
 
 import (
 	"context"
-	"log"
+	"fmt"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
+	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 )
@@ -18,6 +19,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 	if m.Author.Bot {
 		return
 	}
+	ctx := context.WithValue(context.Background(), "messageId", m.ID)
 
 	// Only log stats if channel included in configs
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
@@ -27,17 +29,17 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 	if m.Type == discordgo.MessageTypeDefault || m.Type == discordgo.MessageTypeReply {
 		guildId, err := strconv.ParseUint(m.GuildID, 10, 64)
 		if err != nil {
-			log.Printf("error logging activity: %s\n", err)
+			slog.ErrorCtx(ctx, fmt.Sprintf("error logging activity: %s", err))
 			return
 		}
 		userId, err := strconv.ParseUint(m.Author.ID, 10, 64)
 		if err != nil {
-			log.Printf("error logging activity: %s\n", err)
+			slog.ErrorCtx(ctx, "error logging activity: "+err.Error())
 			return
 		}
 		err = s.app.Stats.LogActivity(context.Background(), guildId, userId, m.Timestamp.Format("2006-01"))
 		if err != nil {
-			log.Printf("error creating activity log: %s\n", err)
+			slog.ErrorCtx(ctx, "error creating activity log: "+err.Error())
 		}
 	}
 }

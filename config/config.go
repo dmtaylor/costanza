@@ -33,8 +33,9 @@ type DbConfig struct {
 }
 
 type Config struct {
-	Discord DiscordConfig
-	Db      DbConfig
+	Discord  DiscordConfig
+	Db       DbConfig
+	LogLevel string
 }
 
 var GlobalConfig Config
@@ -53,7 +54,8 @@ func LoadConfig() error {
 			InsomniacRoles: nil,
 			ListenConfigs:  nil,
 		},
-		Db: DbConfig{Connection: "postgres://costanza:myvoiceismypassportverifyme@localhost:5432/costanza?sslmode=disable"},
+		Db:       DbConfig{Connection: "postgres://costanza:myvoiceismypassportverifyme@localhost:5432/costanza?sslmode=disable"},
+		LogLevel: "info",
 	}
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -64,10 +66,11 @@ func LoadConfig() error {
 		}
 	}
 	err = viper.Unmarshal(&GlobalConfig)
-	GlobalConfig.Discord.ListenChannelSet = make(map[string]bool, len(GlobalConfig.Discord.ListenConfigs))
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
+	initializeLogger()
+	GlobalConfig.Discord.ListenChannelSet = make(map[string]bool, len(GlobalConfig.Discord.ListenConfigs))
 	for _, listenConfig := range GlobalConfig.Discord.ListenConfigs {
 		GlobalConfig.Discord.ListenChannelSet[listenConfig.GuildId] = true
 	}

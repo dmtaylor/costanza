@@ -1,11 +1,14 @@
 package listen
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/roller"
 )
@@ -104,6 +107,9 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	if i.Member != nil && i.Member.User.Bot {
 		return
 	}
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
+	ctx = context.WithValue(ctx, "interactionId", i.ID)
+	defer cancel()
 	options := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(i.ApplicationCommandData().Options))
 	for _, option := range i.ApplicationCommandData().Options {
 		options[option.Name] = option
@@ -117,8 +123,9 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	var err error
 	switch i.ApplicationCommandData().Name {
 	case rollCommandName:
+		ctx := context.WithValue(ctx, "commandName", rollCommandName)
 		if rollInput == "" {
-			log.Printf("missing roll input for interaction, guild %s channel %s user %s", i.GuildID, i.ChannelID, i.User.String())
+			slog.ErrorCtx(ctx, fmt.Sprintf("missing roll input for interaction, guild %s channel %s user %s", i.GuildID, i.ChannelID, i.User.String()))
 			return
 		}
 		result, err = s.doDNotationRoll(rollInput)

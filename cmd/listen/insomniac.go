@@ -3,7 +3,6 @@ package listen
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -30,8 +29,7 @@ func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 			m.Reference(),
 		)
 		if err != nil {
-			slog.ErrorCtx(ctx, fmt.Sprintf("error sending message: %s", err))
-			log.Printf("error sending message: %s\n", err)
+			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
 		}
 		return
 	}
@@ -64,18 +62,18 @@ func isAfterHours(ctx context.Context) bool {
 	timeLoader.Do(func() {
 		startLateHours, err = time.Parse(time.Kitchen, "12:30AM")
 		if err != nil {
-			slog.ErrorCtx(ctx, fmt.Sprintf("error parsing start date format: %s", err))
+			slog.ErrorCtx(ctx, "error parsing start date format: "+err.Error())
 			panic(err)
 		}
 		endLateHours, err = time.Parse(time.Kitchen, "06:00AM")
 		if err != nil {
-			slog.ErrorCtx(ctx, fmt.Sprintf("error parsing end date format: %s", err))
+			slog.ErrorCtx(ctx, "error parsing end date format: "+err.Error())
 			panic(err)
 		}
 	})
 	currentTime, err := time.Parse(time.Kitchen, time.Now().Format(time.Kitchen))
 	if err != nil {
-		slog.ErrorCtx(ctx, fmt.Sprintf("failed to parse current time: %s", err))
+		slog.WarnCtx(ctx, "failed to parse current time: "+err.Error())
 		return false
 	}
 	return startLateHours.Before(currentTime) && endLateHours.After(currentTime)

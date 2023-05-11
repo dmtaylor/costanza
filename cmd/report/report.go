@@ -44,7 +44,7 @@ func init() {
 	Cmd.PersistentFlags().StringP("month", "m", time.Now().Format("2006-01"), "Month for querying stats")
 }
 
-func runStats(cmd *cobra.Command, args []string) error {
+func runStats(cmd *cobra.Command, _ []string) error {
 	app, err := config.LoadApp()
 	if err != nil {
 		return fmt.Errorf("failed to load app state: %w", err)

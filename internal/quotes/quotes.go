@@ -17,14 +17,18 @@ FROM quotes
 WHERE id = $1
 `
 
-type QuoteEngine struct {
+type QuoteEngine interface {
+	GetQuoteSql(ctx context.Context) (string, error)
+}
+
+type QuoteEngineImpl struct {
 	rng    *rand.Rand
 	lock   sync.Mutex
 	dbPool *pgxpool.Pool
 	size   uint
 }
 
-func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngine, error) {
+func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngineImpl, error) {
 	ctx := context.Background()
 	conn, err := connPool.Acquire(ctx)
 	if err != nil {
@@ -35,17 +39,17 @@ func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngine, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get quote count: %w", err)
 	}
-	engine := QuoteEngine{
+	engine := &QuoteEngineImpl{
 		rng:    rand.New(rand.NewSource(time.Now().UnixNano())),
 		lock:   sync.Mutex{},
 		dbPool: connPool,
 		size:   size,
 	}
 
-	return &engine, nil
+	return engine, nil
 }
 
-func (q *QuoteEngine) GetQuoteSql(ctx context.Context) (string, error) {
+func (q *QuoteEngineImpl) GetQuoteSql(ctx context.Context) (string, error) {
 	q.lock.Lock()
 	idx := q.rng.Intn(int(q.size))
 	q.lock.Unlock()

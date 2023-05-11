@@ -14,6 +14,7 @@ func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCrea
 		return
 	}
 	ctx := context.WithValue(context.Background(), "messageId", m.ID)
+	ctx = context.WithValue(ctx, "guildId", m.GuildID)
 
 	for _, pattern := range s.dailyWinPatterns {
 		if pattern.MatchString(m.Message.Content) {

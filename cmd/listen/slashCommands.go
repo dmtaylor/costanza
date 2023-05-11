@@ -1,6 +1,12 @@
 package listen
 
-import "github.com/bwmarrin/discordgo"
+import (
+	"time"
+
+	"github.com/bwmarrin/discordgo"
+)
+
+var interactionTimeout = time.Second * 2
 
 var Commands = []*discordgo.ApplicationCommand{
 	helpSlashCommand,

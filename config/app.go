@@ -14,7 +14,7 @@ import (
 )
 
 type App struct {
-	Quotes          *quotes.QuoteEngine
+	Quotes          quotes.QuoteEngine
 	DNotationParser *parser.DNotationParser
 	ThresholdRoller *roller.ThresholdRoller
 	ConnPool        *pgxpool.Pool

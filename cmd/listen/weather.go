@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -34,11 +33,16 @@ var weatherSlashCommand = &discordgo.ApplicationCommand{
 }
 
 func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.InteractionCreate) {
+	// Ensure we only get options from slash commands
+	if i.Type != discordgo.InteractionApplicationCommand {
+		return
+	}
 	if i.ApplicationCommandData().Name != weatherCommandName {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	ctx, cancel := context.WithTimeout(context.Background(), interactionTimeout)
 	defer cancel()
+	ctx = context.WithValue(ctx, "guildId", i.GuildID)
 	ctx = context.WithValue(ctx, "interactionId", i.ID)
 	ctx = context.WithValue(ctx, "commandName", weatherCommandName)
 	var locations []string
@@ -50,9 +54,10 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	if len(locations) < 1 {
 		locations = config.GlobalConfig.Discord.DefaultWeatherLocations
 	}
+	slog.DebugCtx(ctx, "running weather command", "locations", locations)
 	msg, err := getWeatherString(ctx, locations)
 	if err != nil {
-		log.Printf("failed getting weather for %v: %s", locations, err)
+		slog.ErrorCtx(ctx, "failed getting weather data: "+err.Error(), "locations", locations)
 		return
 	}
 	err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -62,8 +67,9 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 		},
 	})
 	if err != nil {
-		log.Printf("failed sending weather response: %s", err)
+		slog.ErrorCtx(ctx, "failed sending weather response: "+err.Error())
 	}
+	slog.DebugCtx(ctx, "finished weather command")
 }
 
 func getWeatherString(ctx context.Context, locations []string) (string, error) {
@@ -72,7 +78,9 @@ func getWeatherString(ctx context.Context, locations []string) (string, error) {
 		if err := util.CheckCtxTimeout(ctx); err != nil {
 			return "", fmt.Errorf("context error: %w", err)
 		}
-		res, err := http.Get(weatherBase + "/" + url.PathEscape(location) + "?format=3")
+		path := weatherBase + "/" + url.PathEscape(location) + "?format=3"
+		slog.DebugCtx(ctx, "getting weather data", "location", location, "weatherCall", path)
+		res, err := http.Get(path)
 		if err != nil {
 			return "", fmt.Errorf("failed getting weather data: %w", err)
 		}
@@ -88,6 +96,7 @@ func getWeatherString(ctx context.Context, locations []string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("failed to grow buffer: %w", err)
 		}
+		slog.DebugCtx(ctx, "got weather data", "location", location)
 
 	}
 	return b.String(), nil

@@ -13,6 +13,7 @@ func (s *Server) echoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) 
 		return
 	}
 	ctx := context.WithValue(context.Background(), "messageId", m.ID)
+	ctx = context.WithValue(ctx, "guildId", m.GuildID)
 
 	for _, mentionedUser := range m.Mentions {
 		if mentionedUser.ID == sess.State.User.ID {

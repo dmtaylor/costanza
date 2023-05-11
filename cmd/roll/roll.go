@@ -33,7 +33,7 @@ func init() {
 
 }
 
-func runRoll(cmd *cobra.Command, args []string) error {
+func runRoll(_ *cobra.Command, args []string) error {
 	input := strings.Join(args, " ")
 	rollParser, err := parser.NewDNotationParser()
 	if err != nil {

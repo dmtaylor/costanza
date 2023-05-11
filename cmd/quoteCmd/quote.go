@@ -31,7 +31,7 @@ func init() {
 	)
 }
 
-func runQuote(cmd *cobra.Command, args []string) error {
+func runQuote(_ *cobra.Command, _ []string) error {
 	err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)

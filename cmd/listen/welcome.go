@@ -3,9 +3,9 @@ package listen
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/bwmarrin/discordgo"
+	"golang.org/x/exp/slog"
 )
 
 const welcomeMessageFmt = `Welcome to the party %s!`
@@ -22,18 +22,18 @@ func welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMemberAdd) {
 
 	channels, err := sess.GuildChannels(j.GuildID)
 	if err != nil {
-		log.Printf("error getting channel list: %s\n", err)
+		slog.ErrorCtx(ctx, "error getting channel list: "+err.Error())
 		return
 	}
 	if len(channels) < 1 {
-		log.Printf("no channels in guild pulled\n")
+		slog.WarnCtx(ctx, "no guild channels pulled, ignoring")
 		return
 	}
 	for _, channel := range channels {
 		if channel.Type == discordgo.ChannelTypeGuildText && channel.Position == 0 {
 			_, err = sess.ChannelMessageSend(channel.ID, fmt.Sprintf(welcomeMessageFmt, j.User.Mention()))
 			if err != nil {
-				log.Printf("failed to send message to channel %s: %s\n", channel.ID, err)
+				slog.ErrorCtx(ctx, "failed to send message: "+err.Error(), "channel", channel.ID)
 			}
 		}
 	}

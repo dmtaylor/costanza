@@ -2,7 +2,6 @@ package listen
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/bwmarrin/discordgo"
@@ -20,6 +19,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 		return
 	}
 	ctx := context.WithValue(context.Background(), "messageId", m.ID)
+	ctx = context.WithValue(ctx, "guildId", m.GuildID)
 
 	// Only log stats if channel included in configs
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
@@ -29,7 +29,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 	if m.Type == discordgo.MessageTypeDefault || m.Type == discordgo.MessageTypeReply {
 		guildId, err := strconv.ParseUint(m.GuildID, 10, 64)
 		if err != nil {
-			slog.ErrorCtx(ctx, fmt.Sprintf("error logging activity: %s", err))
+			slog.ErrorCtx(ctx, "error logging activity: "+err.Error())
 			return
 		}
 		userId, err := strconv.ParseUint(m.Author.ID, 10, 64)

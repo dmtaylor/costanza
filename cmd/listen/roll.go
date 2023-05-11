@@ -3,14 +3,13 @@ package listen
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/roller"
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const rollCommandName = "roll"
@@ -107,9 +106,18 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	if i.Member != nil && i.Member.User.Bot {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*2)
-	ctx = context.WithValue(ctx, "interactionId", i.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), interactionTimeout)
 	defer cancel()
+	ctx = context.WithValue(ctx, "interactionId", i.ID)
+	ctx = context.WithValue(ctx, "guildId", i.GuildID)
+	if i.User != nil {
+		ctx = context.WithValue(ctx, "user", i.User.String())
+	}
+	if i.Member != nil {
+		ctx = context.WithValue(ctx, "user", i.Member.User.String())
+	}
+	ctx = context.WithValue(ctx, "channelId", i.ChannelID)
+	ctx = context.WithValue(ctx, "commandName", i.ApplicationCommandData().Name)
 	options := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(i.ApplicationCommandData().Options))
 	for _, option := range i.ApplicationCommandData().Options {
 		options[option.Name] = option
@@ -118,20 +126,20 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	if o, ok := options[rollOptionName]; ok {
 		rollInput = o.StringValue()
 	}
+	slog.DebugCtx(ctx, "starting roll", "roll", rollInput)
 
 	var result string
 	var err error
 	switch i.ApplicationCommandData().Name {
 	case rollCommandName:
-		ctx := context.WithValue(ctx, "commandName", rollCommandName)
 		if rollInput == "" {
-			slog.ErrorCtx(ctx, fmt.Sprintf("missing roll input for interaction, guild %s channel %s user %s", i.GuildID, i.ChannelID, i.User.String()))
+			slog.ErrorCtx(ctx, "missing roll input for interaction")
 			return
 		}
 		result, err = s.doDNotationRoll(rollInput)
 	case shadowrunCommandName:
 		if rollInput == "" {
-			log.Printf("missing roll input for interaction, guild %s channel %s user %s", i.GuildID, i.ChannelID, i.User.String())
+			slog.ErrorCtx(ctx, "missing roll input for interaction")
 			return
 		}
 		result, err = s.doShadowrunRoll(rollInput)
@@ -157,8 +165,13 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	default:
 		return
 	}
+	timeoutErr := util.CheckCtxTimeout(ctx)
 	if err != nil {
-		log.Printf("failed to process roll %s: %s\n", rollInput, err)
+		slog.ErrorCtx(ctx, "failed to process roll: "+err.Error(), "roll", rollInput)
+		if timeoutErr != nil { // don't send response if context timed out
+			slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
+			return
+		}
 		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
@@ -166,9 +179,12 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			},
 		})
 		if err != nil {
-			log.Printf("failed to send interaction response: %s", err)
+			slog.ErrorCtx(ctx, "failed to send interaction response: "+err.Error())
 		}
 		return
+	}
+	if timeoutErr != nil { // don't finish if context timed out
+		slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
 	}
 	err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -177,8 +193,9 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 		},
 	})
 	if err != nil {
-		log.Printf("failed to send interaction response for interaction %s: %s", i.Interaction.ID, err)
+		slog.ErrorCtx(ctx, "failed to send interaction response: "+err.Error())
 	}
+	slog.DebugCtx(ctx, "completed roll", "roll", rollInput)
 }
 
 func (s *Server) doDNotationRoll(input string) (string, error) {

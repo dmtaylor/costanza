@@ -18,7 +18,7 @@ var Cmd = &cobra.Command{
 	RunE:  registerCommands,
 }
 
-func registerCommands(cmd *cobra.Command, args []string) error {
+func registerCommands(_ *cobra.Command, _ []string) error {
 	err := config.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)

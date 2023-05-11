@@ -18,7 +18,7 @@ var removeCmd = &cobra.Command{
 	RunE:  removeStats,
 }
 
-func removeStats(cmd *cobra.Command, args []string) error {
+func removeStats(cmd *cobra.Command, _ []string) error {
 	app, err := config.LoadApp()
 	if err != nil {
 		return fmt.Errorf("failed to load app state: %w", err)

@@ -4,7 +4,6 @@ package listen
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,6 +13,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 )
@@ -94,14 +94,14 @@ func newServer() (*Server, error) {
 func runListen(_ *cobra.Command, _ []string) error {
 	server, err := newServer()
 	if err != nil {
-		log.Printf("failed to build state")
+		slog.Error("failed to build state: " + err.Error())
 		return err
 	}
 	defer server.app.ConnPool.Close()
 
 	dg, err := discordgo.New("Bot " + config.GlobalConfig.Discord.Token)
 	if err != nil {
-		log.Printf("failed to start bot: %s\n", err)
+		slog.Error("failed to config bot: " + err.Error())
 		return err
 	}
 	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
@@ -110,11 +110,12 @@ func runListen(_ *cobra.Command, _ []string) error {
 			go func() {
 				err := http.ListenAndServe(":8585", nil)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
-					log.Fatal(err)
+					slog.Error("healthcheck listen error: " + err.Error())
+					panic(err)
 				}
 			}()
 		}
-		log.Printf("Bot started, CTL-C to quit")
+		slog.Info("Bot started, CTL-C to quit")
 	})
 	dg.AddHandler(help)
 	dg.AddHandler(server.echoQuote)
@@ -128,7 +129,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 
 	err = dg.Open()
 	if err != nil {
-		log.Printf("failed to open bot connection: %s\n", err)
+		slog.Error("failed to open bot connection: " + err.Error())
 		return err
 	}
 	var closeErr error = nil
@@ -143,6 +144,6 @@ func runListen(_ *cobra.Command, _ []string) error {
 	return closeErr
 }
 
-func healthcheck(w http.ResponseWriter, request *http.Request) {
+func healthcheck(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 }

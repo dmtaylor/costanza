@@ -40,11 +40,8 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	if i.ApplicationCommandData().Name != weatherCommandName {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), interactionTimeout)
+	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
 	defer cancel()
-	ctx = context.WithValue(ctx, "guildId", i.GuildID)
-	ctx = context.WithValue(ctx, "interactionId", i.ID)
-	ctx = context.WithValue(ctx, "commandName", weatherCommandName)
 	var locations []string
 	for _, option := range i.ApplicationCommandData().Options {
 		if option.Name == "location" {

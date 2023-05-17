@@ -8,6 +8,7 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.MessageCreate) {
@@ -18,8 +19,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 	if m.Author.Bot {
 		return
 	}
-	ctx := context.WithValue(context.Background(), "messageId", m.ID)
-	ctx = context.WithValue(ctx, "guildId", m.GuildID)
+	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	// Only log stats if channel included in configs
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {

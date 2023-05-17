@@ -5,6 +5,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"golang.org/x/exp/slog"
+
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const helpCommandName = "chelp"
@@ -42,11 +44,8 @@ func help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	if i.ApplicationCommandData().Name != helpCommandName {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), interactionTimeout)
+	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
 	defer cancel()
-	ctx = context.WithValue(ctx, "interactionId", i.ID)
-	ctx = context.WithValue(ctx, "guildId", i.GuildID)
-	ctx = context.WithValue(ctx, "commandName", helpCommandName)
 	slog.DebugCtx(ctx, "running help command")
 	err := sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,

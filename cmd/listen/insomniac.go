@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 var startLateHours, endLateHours time.Time
@@ -19,9 +20,9 @@ func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
-	ctx := context.WithValue(context.Background(), "messageId", m.ID)
+	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
-	if isAfterHours(ctx) && s.isInsomniacUser(m.Author, m.Member) {
+	if isAfterHours(ctx) && s.isInsomniacUser(ctx, m.Author, m.Member) {
 		_, err := sess.ChannelMessageSendReply(
 			m.ChannelID,
 			fmt.Sprintf("%s All right. That's enough for today. You're tired. Get some sleep. I'll see you first thing in the morning.",
@@ -35,8 +36,9 @@ func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 	}
 }
 
-func (s *Server) isInsomniacUser(user *discordgo.User, member *discordgo.Member) bool {
+func (s *Server) isInsomniacUser(ctx context.Context, user *discordgo.User, member *discordgo.Member) bool {
 	if user == nil || member == nil {
+		slog.DebugCtx(ctx, "user or member is nil, skipping")
 		return false
 	}
 

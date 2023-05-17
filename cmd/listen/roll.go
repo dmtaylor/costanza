@@ -18,6 +18,13 @@ const worldOfDarknessCommandName = "wodroll"
 const darkHeresyTestCommandName = "dhtest"
 const rollOptionName = "roll"
 
+var rollCommands = map[string]bool{
+	rollCommandName:            true,
+	shadowrunCommandName:       true,
+	worldOfDarknessCommandName: true,
+	darkHeresyTestCommandName:  true,
+}
+
 var rollSlashCommand = &discordgo.ApplicationCommand{
 	Name:        rollCommandName,
 	Type:        discordgo.ChatApplicationCommand,
@@ -106,18 +113,13 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	if i.Member != nil && i.Member.User.Bot {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), interactionTimeout)
+	cmdName := i.ApplicationCommandData().Name
+	if _, ok := rollCommands[cmdName]; !ok { // stop running if not a roll command
+		return
+	}
+
+	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
 	defer cancel()
-	ctx = context.WithValue(ctx, "interactionId", i.ID)
-	ctx = context.WithValue(ctx, "guildId", i.GuildID)
-	if i.User != nil {
-		ctx = context.WithValue(ctx, "user", i.User.String())
-	}
-	if i.Member != nil {
-		ctx = context.WithValue(ctx, "user", i.Member.User.String())
-	}
-	ctx = context.WithValue(ctx, "channelId", i.ChannelID)
-	ctx = context.WithValue(ctx, "commandName", i.ApplicationCommandData().Name)
 	options := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(i.ApplicationCommandData().Options))
 	for _, option := range i.ApplicationCommandData().Options {
 		options[option.Name] = option
@@ -130,7 +132,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 
 	var result string
 	var err error
-	switch i.ApplicationCommandData().Name {
+	switch cmdName {
 	case rollCommandName:
 		if rollInput == "" {
 			slog.ErrorCtx(ctx, "missing roll input for interaction")
@@ -163,6 +165,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	case darkHeresyTestCommandName:
 		result, err = s.doDHTestRoll(rollInput)
 	default:
+		slog.ErrorCtx(ctx, "invalid command name: "+cmdName)
 		return
 	}
 	timeoutErr := util.CheckCtxTimeout(ctx)

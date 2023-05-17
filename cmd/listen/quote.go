@@ -5,6 +5,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"golang.org/x/exp/slog"
+
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 // echoQuote handler function for sending George Costanza quotes
@@ -12,8 +14,7 @@ func (s *Server) echoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) 
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
-	ctx := context.WithValue(context.Background(), "messageId", m.ID)
-	ctx = context.WithValue(ctx, "guildId", m.GuildID)
+	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	for _, mentionedUser := range m.Mentions {
 		if mentionedUser.ID == sess.State.User.ID {

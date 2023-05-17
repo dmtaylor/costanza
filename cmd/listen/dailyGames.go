@@ -6,6 +6,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"golang.org/x/exp/slog"
+
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 // dailyWinReact performs reaction if it detects a win pattern in the message
@@ -13,8 +15,7 @@ func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCrea
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
-	ctx := context.WithValue(context.Background(), "messageId", m.ID)
-	ctx = context.WithValue(ctx, "guildId", m.GuildID)
+	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	for _, pattern := range s.dailyWinPatterns {
 		if pattern.MatchString(m.Message.Content) {

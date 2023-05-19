@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
@@ -32,8 +33,6 @@ type Server struct {
 	dailyWinPatterns []*regexp.Regexp
 }
 
-var healthcheckEnabled bool
-
 func init() {
 	Cmd.PersistentFlags().StringSliceP(
 		"insomniacIds",
@@ -50,7 +49,35 @@ func init() {
 	)
 	viper.BindPFlag("discord.insomniac_roles", Cmd.PersistentFlags().Lookup("insomniacRoles"))
 
-	Cmd.PersistentFlags().BoolVar(&healthcheckEnabled, "healthcheck", false, "Enable health endpoint on :8585")
+	Cmd.PersistentFlags().Bool(
+		"healthcheck",
+		false,
+		"enable healthcheck endpoint",
+	)
+	viper.BindPFlag("metrics.healthcheck_enabled", Cmd.PersistentFlags().Lookup("healthcheck"))
+	Cmd.PersistentFlags().Bool(
+		"metrics",
+		false,
+		"enable prometheus metrics",
+	)
+	viper.BindPFlag("metrics.metrics_enabled", Cmd.PersistentFlags().Lookup("metrics"))
+
+	Cmd.PersistentFlags().String(
+		"appname",
+		"costanza-local",
+		"appname for use in logging",
+	)
+	viper.BindPFlag("metrics.appname", Cmd.PersistentFlags().Lookup("appname"))
+
+	Cmd.PersistentFlags().UintP(
+		"metricsPort",
+		"p",
+		8585,
+		"port used for serving healthcheck & metrics endpoints",
+	)
+	viper.BindPFlag("metrics.port", Cmd.PersistentFlags().Lookup("metricsPort"))
+	viper.BindEnv("metrics.port", "COSTANZA_METRICS_PORT")
+
 }
 
 func newServer() (*Server, error) {
@@ -105,10 +132,10 @@ func runListen(_ *cobra.Command, _ []string) error {
 		return err
 	}
 	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
-		if healthcheckEnabled {
+		if config.GlobalConfig.Metrics.HealthcheckEnabled {
 			http.HandleFunc("/api/v1/healthcheck", healthcheck)
 			go func() {
-				err := http.ListenAndServe(":8585", nil)
+				err := http.ListenAndServe(":"+strconv.FormatUint(config.GlobalConfig.Metrics.MetricsPort, 10), nil)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {
 					slog.Error("healthcheck listen error: " + err.Error())
 					panic(err)

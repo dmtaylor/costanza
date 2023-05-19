@@ -28,14 +28,22 @@ type DiscordConfig struct {
 	ListenChannelSet        map[string]bool
 }
 
+type MetricsConfig struct {
+	HealthcheckEnabled bool   `mapstructure:"healthcheck_enabled"`
+	MetricsEnabled     bool   `mapstructure:"metrics_enabled"`
+	Appname            string `mapstructure:"appname"`
+	LogLevel           string `mapstructure:"log_level"`
+	MetricsPort        uint64 `mapstructure:"port"`
+}
+
 type DbConfig struct {
 	Connection string
 }
 
 type Config struct {
-	Discord  DiscordConfig
-	Db       DbConfig
-	LogLevel string
+	Discord DiscordConfig
+	Metrics MetricsConfig
+	Db      DbConfig
 }
 
 var GlobalConfig Config
@@ -54,8 +62,13 @@ func LoadConfig() error {
 			InsomniacRoles: nil,
 			ListenConfigs:  nil,
 		},
-		Db:       DbConfig{Connection: "postgres://costanza:myvoiceismypassportverifyme@localhost:5432/costanza?sslmode=disable"},
-		LogLevel: "info",
+		Metrics: MetricsConfig{
+			HealthcheckEnabled: false,
+			MetricsEnabled:     false,
+			Appname:            "costanza-local",
+			LogLevel:           "info",
+		},
+		Db: DbConfig{Connection: "postgres://costanza:myvoiceismypassportverifyme@localhost:5432/costanza?sslmode=disable"},
 	}
 	err := viper.ReadInConfig()
 	if err != nil {

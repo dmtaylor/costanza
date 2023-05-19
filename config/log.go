@@ -23,10 +23,10 @@ func getLogLevel(lvl string) slog.Level {
 }
 
 func initializeLogger() {
-	level := getLogLevel(GlobalConfig.LogLevel)
+	level := getLogLevel(GlobalConfig.Metrics.LogLevel)
 	h := slog.HandlerOptions{Level: level}
 	if level < slog.LevelInfo {
 		h.AddSource = true
 	}
-	slog.SetDefault(slog.New(h.NewTextHandler(os.Stderr)))
+	slog.SetDefault(slog.New(h.NewTextHandler(os.Stderr)).With("appname", GlobalConfig.Metrics.Appname))
 }

@@ -132,8 +132,16 @@ func runListen(_ *cobra.Command, _ []string) error {
 		return err
 	}
 	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
+		listen := false
 		if config.GlobalConfig.Metrics.HealthcheckEnabled {
 			http.HandleFunc("/api/v1/healthcheck", healthcheck)
+			listen = true
+		}
+		if config.GlobalConfig.Metrics.MetricsEnabled {
+			http.Handle("/metrics", setupMetrics())
+			listen = true
+		}
+		if listen { // only http listen if health checks or metrics are configured
 			go func() {
 				err := http.ListenAndServe(":"+strconv.FormatUint(config.GlobalConfig.Metrics.MetricsPort, 10), nil)
 				if err != nil && !errors.Is(err, http.ErrServerClosed) {

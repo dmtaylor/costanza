@@ -31,6 +31,7 @@ var Cmd = &cobra.Command{
 type Server struct {
 	app              config.App
 	dailyWinPatterns []*regexp.Regexp
+	m                metrics
 }
 
 func init() {
@@ -138,7 +139,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 			listen = true
 		}
 		if config.GlobalConfig.Metrics.MetricsEnabled {
-			http.Handle("/metrics", setupMetrics())
+			http.Handle("/metrics", server.setupMetrics())
 			listen = true
 		}
 		if listen { // only http listen if health checks or metrics are configured

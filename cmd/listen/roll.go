@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/roller"
@@ -118,6 +120,12 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 		return
 	}
 
+	if s.m.enabled {
+		start := time.Now()
+		defer func() {
+			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName}).Observe(time.Since(start).Seconds())
+		}()
+	}
 	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
 	defer cancel()
 	options := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(i.ApplicationCommandData().Options))
@@ -135,12 +143,18 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	switch cmdName {
 	case rollCommandName:
 		if rollInput == "" {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
+			}
 			slog.ErrorCtx(ctx, "missing roll input for interaction")
 			return
 		}
 		result, err = s.doDNotationRoll(rollInput)
 	case shadowrunCommandName:
 		if rollInput == "" {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
+			}
 			slog.ErrorCtx(ctx, "missing roll input for interaction")
 			return
 		}
@@ -165,6 +179,9 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	case darkHeresyTestCommandName:
 		result, err = s.doDHTestRoll(rollInput)
 	default:
+		if s.m.enabled {
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
+		}
 		slog.ErrorCtx(ctx, "invalid command name: "+cmdName)
 		return
 	}
@@ -172,6 +189,9 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	if err != nil {
 		slog.ErrorCtx(ctx, "failed to process roll: "+err.Error(), "roll", rollInput)
 		if timeoutErr != nil { // don't send response if context timed out
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "true"}).Inc()
+			}
 			slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
 			return
 		}
@@ -182,12 +202,19 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			},
 		})
 		if err != nil {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
+			}
 			slog.ErrorCtx(ctx, "failed to send interaction response: "+err.Error())
 		}
 		return
 	}
 	if timeoutErr != nil { // don't finish if context timed out
+		if s.m.enabled {
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "true"}).Inc()
+		}
 		slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
+		return
 	}
 	err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -196,9 +223,16 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 		},
 	})
 	if err != nil {
+		if s.m.enabled {
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
+		}
 		slog.ErrorCtx(ctx, "failed to send interaction response: "+err.Error())
+		return
 	}
 	slog.DebugCtx(ctx, "completed roll", "roll", rollInput)
+	if s.m.enabled {
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName}).Inc()
+	}
 }
 
 func (s *Server) doDNotationRoll(input string) (string, error) {

@@ -2,13 +2,17 @@ package listen
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
@@ -40,6 +44,12 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	if i.ApplicationCommandData().Name != weatherCommandName {
 		return
 	}
+	if s.m.enabled {
+		start := time.Now()
+		defer func() {
+			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName}).Observe(time.Since(start).Seconds())
+		}()
+	}
 	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
 	defer cancel()
 	var locations []string
@@ -54,6 +64,10 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	slog.DebugCtx(ctx, "running weather command", "locations", locations)
 	msg, err := getWeatherString(ctx, locations)
 	if err != nil {
+		if s.m.enabled {
+			isTimeout := strconv.FormatBool(errors.Is(err, context.DeadlineExceeded))
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName, isTimeoutLabel: isTimeout}).Inc()
+		}
 		slog.ErrorCtx(ctx, "failed getting weather data: "+err.Error(), "locations", locations)
 		return
 	}
@@ -64,9 +78,16 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 		},
 	})
 	if err != nil {
+		if s.m.enabled {
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName, isTimeoutLabel: "false"}).Inc()
+		}
 		slog.ErrorCtx(ctx, "failed sending weather response: "+err.Error())
+		return
 	}
 	slog.DebugCtx(ctx, "finished weather command")
+	if s.m.enabled {
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName}).Inc()
+	}
 }
 
 func getWeatherString(ctx context.Context, locations []string) (string, error) {

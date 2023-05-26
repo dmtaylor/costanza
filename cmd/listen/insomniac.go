@@ -7,11 +7,14 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"
 )
+
+const insomniacEventName = "insomniac"
 
 var startLateHours, endLateHours time.Time
 var timeLoader sync.Once
@@ -19,6 +22,13 @@ var timeLoader sync.Once
 func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
+	}
+
+	if s.m.enabled {
+		start := time.Now()
+		defer func() {
+			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName}).Observe(time.Since(start).Seconds())
+		}()
 	}
 	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
@@ -30,9 +40,19 @@ func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 			m.Reference(),
 		)
 		if err != nil {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName, isTimeoutLabel: "false"}).Inc()
+			}
 			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
+		} else {
+			if s.m.enabled {
+				s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName}).Inc()
+			}
 		}
 		return
+	}
+	if s.m.enabled {
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName}).Inc()
 	}
 }
 

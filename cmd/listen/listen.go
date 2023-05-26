@@ -153,14 +153,14 @@ func runListen(_ *cobra.Command, _ []string) error {
 		}
 		slog.Info("Bot started, CTL-C to quit")
 	})
-	dg.AddHandler(help)
-	dg.AddHandler(server.echoQuote)
-	dg.AddHandler(server.echoInsomniac)
-	dg.AddHandler(server.dispatchRollCommands)
-	dg.AddHandler(server.dailyWinReact)
-	dg.AddHandler(server.logMessageActivity)
-	dg.AddHandler(server.weatherCommand)
-	dg.AddHandler(welcomeMessage)
+	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.help))
+	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoQuote))
+	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoInsomniac))
+	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.dispatchRollCommands))
+	dg.AddHandler(server.messageCreateMetricsMiddleware(server.dailyWinReact))
+	dg.AddHandler(server.messageCreateMetricsMiddleware(server.logMessageActivity))
+	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.weatherCommand))
+	dg.AddHandler(server.guildMemberAddMetricsMiddleware(server.welcomeMessage))
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentsGuildMembers
 
 	err = dg.Open()

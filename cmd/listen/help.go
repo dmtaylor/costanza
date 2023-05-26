@@ -31,7 +31,7 @@ var helpSlashCommand = &discordgo.ApplicationCommand{
 }
 
 // help handler function for help messages
-func help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
+func (s *Server) help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	if i.Type != discordgo.InteractionApplicationCommand {
 		return
 	}

@@ -2,29 +2,49 @@ package listen
 
 import (
 	"context"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/util"
 )
+
+const quoteEventName = "quote"
 
 // echoQuote handler function for sending George Costanza quotes
 func (s *Server) echoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
+	if s.m.enabled {
+		start := time.Now()
+		defer func() {
+			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: quoteEventName}).Observe(time.Since(start).Seconds())
+		}()
+	}
 	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	for _, mentionedUser := range m.Mentions {
 		if mentionedUser.ID == sess.State.User.ID {
-			s.sendQuote(ctx, sess, m)
+			err := s.sendQuote(ctx, sess, m)
+			if s.m.enabled {
+				if err != nil {
+					s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: quoteEventName, isTimeoutLabel: "false"}).Inc()
+				} else {
+					s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: quoteEventName}).Inc()
+				}
+			}
 			return
 		}
 	}
+	if s.m.enabled {
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: quoteEventName}).Inc()
+	}
 }
 
-func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
+func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	quote, err := s.app.Quotes.GetQuoteSql(ctx)
 	if err != nil {
 		slog.ErrorCtx(ctx, "failed to get quote: "+err.Error())
@@ -36,10 +56,12 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 		if err != nil {
 			slog.ErrorCtx(ctx, "error sending message: ", err.Error())
 		}
-		return
+		return err
 	}
 	_, err = sess.ChannelMessageSendReply(m.ChannelID, quote, m.Reference())
 	if err != nil {
 		slog.ErrorCtx(ctx, "error sending message: "+err.Error())
+		return err
 	}
+	return nil
 }

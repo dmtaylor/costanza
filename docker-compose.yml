@@ -5,6 +5,7 @@ services:
     restart: unless-stopped
     environment:
       COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
+      COSTANZA_METRICS_PORT: 8585
     build:
       context: .
       dockerfile: ./Dockerfile

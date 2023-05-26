@@ -2,10 +2,18 @@ version: '3'
 
 services:
   costanza:
+    environment:
+      COSTANZA_METRICS_APPNAME: "costanza-dev"
     image: costanza-dev:latest
+    ports:
+      - "8586:8585"
   cron:
+    environment:
+      COSTANZA_METRICS_APPNAME: "costanza-dev"
     image: costanza-dev:latest
   register:
+    environment:
+      COSTANZA_METRICS_APPNAME: "costanza-dev"
     image: costanza-dev:latest
   db:
     ports:

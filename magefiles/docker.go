@@ -85,6 +85,7 @@ func (Docker) Restart(env string, background bool) error {
 	return cmd.Run()
 }
 
+// Status get status of docker compose deployment
 func (Docker) Status(env string) error {
 	if env == "" {
 		env = devEnv

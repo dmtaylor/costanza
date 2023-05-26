@@ -69,6 +69,7 @@ func init() {
 		"appname for use in logging",
 	)
 	viper.BindPFlag("metrics.appname", Cmd.PersistentFlags().Lookup("appname"))
+	viper.BindEnv("metrics.appname", "COSTANZA_METRICS_APPNAME")
 
 	Cmd.PersistentFlags().UintP(
 		"metricsPort",

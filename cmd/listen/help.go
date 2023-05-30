@@ -2,8 +2,10 @@ package listen
 
 import (
 	"context"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/util"
@@ -44,16 +46,32 @@ func (s *Server) help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	if i.ApplicationCommandData().Name != helpCommandName {
 		return
 	}
+	if s.m.enabled {
+		start := time.Now()
+		defer func() {
+			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName}).Observe(time.Since(start).Seconds())
+		}()
+	}
 	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
 	defer cancel()
 	slog.DebugCtx(ctx, "running help command")
+	callStart := time.Now()
 	err := sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: helpMessage,
 		},
 	})
+	if s.m.enabled {
+		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: helpCommandName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+	}
 	if err != nil {
+		if s.m.enabled {
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName, isTimeoutLabel: "false"}).Inc()
+		}
 		slog.ErrorCtx(ctx, "failed sending help data: "+err.Error())
+	}
+	if s.m.enabled {
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName}).Inc()
 	}
 }

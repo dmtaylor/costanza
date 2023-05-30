@@ -195,12 +195,16 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
 			return
 		}
+		callStart := time.Now()
 		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: fmt.Sprintf("I was unable to handle your roll \"%s\". Why must there always be a problem?", rollInput),
 			},
 		})
+		if s.m.enabled {
+			s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: cmdName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+		}
 		if err != nil {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
@@ -216,12 +220,16 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 		slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
 		return
 	}
+	callStart := time.Now()
 	err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: fmt.Sprintf("%s → %s", rollInput, result),
 		},
 	})
+	if s.m.enabled {
+		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: cmdName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+	}
 	if err != nil {
 		if s.m.enabled {
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()

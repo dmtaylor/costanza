@@ -62,7 +62,7 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 		locations = config.GlobalConfig.Discord.DefaultWeatherLocations
 	}
 	slog.DebugCtx(ctx, "running weather command", "locations", locations)
-	msg, err := getWeatherString(ctx, locations)
+	msg, err := s.getWeatherString(ctx, locations)
 	if err != nil {
 		if s.m.enabled {
 			isTimeout := strconv.FormatBool(errors.Is(err, context.DeadlineExceeded))
@@ -90,7 +90,7 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	}
 }
 
-func getWeatherString(ctx context.Context, locations []string) (string, error) {
+func (s *Server) getWeatherString(ctx context.Context, locations []string) (string, error) {
 	b := strings.Builder{}
 	for _, location := range locations {
 		if err := util.CheckCtxTimeout(ctx); err != nil {
@@ -98,7 +98,11 @@ func getWeatherString(ctx context.Context, locations []string) (string, error) {
 		}
 		path := weatherBase + "/" + url.PathEscape(location) + "?format=3"
 		slog.DebugCtx(ctx, "getting weather data", "location", location, "weatherCall", path)
+		callStart := time.Now()
 		res, err := http.Get(path)
+		if s.m.enabled {
+			s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: weatherCommandName, externalApiLabel: "wttr.in"}).Observe(time.Since(callStart).Seconds())
+		}
 		if err != nil {
 			return "", fmt.Errorf("failed getting weather data: %w", err)
 		}

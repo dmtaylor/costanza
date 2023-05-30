@@ -30,15 +30,19 @@ func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCrea
 
 	for _, pattern := range s.dailyWinPatterns {
 		if pattern.MatchString(m.Message.Content) {
+			callStart := time.Now()
 			err := sess.MessageReactionAdd(m.ChannelID, m.Message.ID, "💯")
 			if err != nil {
 				if s.m.enabled {
 					s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName, isTimeoutLabel: "false"}).Inc()
+					s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: dailyWinReactMetricName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
 				}
 				slog.ErrorCtx(ctx, fmt.Sprintf("error adding reaction: %s", err))
+				return
 			}
 			if s.m.enabled {
 				s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName}).Inc()
+				s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: dailyWinReactMetricName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
 			}
 			return
 		}

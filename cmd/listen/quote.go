@@ -58,7 +58,11 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 		}
 		return err
 	}
+	callStart := time.Now()
 	_, err = sess.ChannelMessageSendReply(m.ChannelID, quote, m.Reference())
+	if s.m.enabled {
+		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: quoteEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+	}
 	if err != nil {
 		slog.ErrorCtx(ctx, "error sending message: "+err.Error())
 		return err

@@ -11,6 +11,7 @@ import (
 )
 
 const welcomeMessageFmt = `Welcome to the party %s!`
+const welcomeEventName = "welcome"
 
 func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMemberAdd) {
 	if j.User.ID == sess.State.User.ID { // Don't welcome yourself
@@ -28,10 +29,14 @@ func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMembe
 	ctx := context.WithValue(context.Background(), "memberId", j.User.ID)
 	ctx = context.WithValue(ctx, "guildId", j.GuildID)
 
+	callStart := time.Now()
 	channels, err := sess.GuildChannels(j.GuildID)
+	if s.m.enabled {
+		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: welcomeEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+	}
 	if err != nil {
 		if s.m.enabled {
-			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: "welcome", isTimeoutLabel: "false"}).Inc()
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName, isTimeoutLabel: "false"}).Inc()
 		}
 		slog.ErrorCtx(ctx, "error getting channel list: "+err.Error())
 		return
@@ -42,7 +47,11 @@ func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMembe
 	}
 	for _, channel := range channels {
 		if channel.Type == discordgo.ChannelTypeGuildText && channel.Position == 0 {
+			callStart = time.Now()
 			_, err = sess.ChannelMessageSend(channel.ID, fmt.Sprintf(welcomeMessageFmt, j.User.Mention()))
+			if s.m.enabled {
+				s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: welcomeEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+			}
 			if err != nil {
 				if s.m.enabled {
 					s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: "welcome", isTimeoutLabel: "false"}).Inc()

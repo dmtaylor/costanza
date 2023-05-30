@@ -33,12 +33,16 @@ func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	if isAfterHours(ctx) && s.isInsomniacUser(ctx, m.Author, m.Member) {
+		callStart := time.Now()
 		_, err := sess.ChannelMessageSendReply(
 			m.ChannelID,
 			fmt.Sprintf("%s All right. That's enough for today. You're tired. Get some sleep. I'll see you first thing in the morning.",
 				m.Author.Mention()),
 			m.Reference(),
 		)
+		if s.m.enabled {
+			s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: insomniacEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+		}
 		if err != nil {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName, isTimeoutLabel: "false"}).Inc()

@@ -13,6 +13,10 @@ import (
 	"github.com/dmtaylor/costanza/internal/stats"
 )
 
+// VersionString current tagged version for application
+const VersionString = "v1.2.0"
+
+// App represents the current app components & state
 type App struct {
 	Quotes          quotes.QuoteEngine
 	DNotationParser *parser.DNotationParser
@@ -22,8 +26,9 @@ type App struct {
 }
 
 var loader sync.Once
-var app App
+var app App // use singleton App
 
+// LoadApp loads default app state
 func LoadApp() (*App, error) {
 	var err error
 	loader.Do(func() {

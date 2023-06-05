@@ -155,6 +155,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 		slog.Info("Bot started, CTL-C to quit")
 	})
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.help))
+	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.license))
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoQuote))
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoInsomniac))
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.dispatchRollCommands))

@@ -1,9 +1,10 @@
 package roller
 
 import (
-	"math/rand"
 	"sync"
 	"time"
+
+	"golang.org/x/exp/rand"
 )
 
 type BaseRoller struct {
@@ -12,8 +13,10 @@ type BaseRoller struct {
 }
 
 func NewBaseRoller() *BaseRoller {
+	src := &rand.PCGSource{}
+	src.Seed(uint64(time.Now().UnixNano()))
 	return &BaseRoller{
-		rng:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:  rand.New(src),
 		lock: &sync.Mutex{},
 	}
 }

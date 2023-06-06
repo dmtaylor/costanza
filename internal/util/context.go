@@ -43,3 +43,9 @@ func ContextFromDiscordInteractionCreate(parent context.Context, i *discordgo.In
 
 	return ctx, cancel
 }
+
+func ContextFromListenConfig(parent context.Context, guildId, channelId string) context.Context {
+	ctx := context.WithValue(parent, "guildId", guildId)
+	ctx = context.WithValue(ctx, "reportChannelId", channelId)
+	return ctx
+}

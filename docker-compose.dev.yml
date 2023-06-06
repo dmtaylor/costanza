@@ -11,6 +11,8 @@ services:
     environment:
       COSTANZA_METRICS_APPNAME: "costanza-dev"
     image: costanza-dev:latest
+    ports:
+      - "8686:8585"
   register:
     environment:
       COSTANZA_METRICS_APPNAME: "costanza-dev"

@@ -16,6 +16,7 @@ var TokenPath = "discord.token"
 type ListenConfig struct {
 	GuildId         string `mapstructure:"guild_id"`
 	ReportChannelId string `mapstructure:"report_channel_id"`
+	StartTime       string `mapstructure:"start_time"` // Time in 24hr format UTC to run
 }
 
 type DiscordConfig struct {

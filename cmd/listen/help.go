@@ -64,14 +64,13 @@ func (s *Server) help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	})
 	if s.m.enabled {
 		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: helpCommandName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+		if err != nil {
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName, isTimeoutLabel: "false"}).Inc()
+		} else {
+			s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName}).Inc()
+		}
 	}
 	if err != nil {
-		if s.m.enabled {
-			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName, isTimeoutLabel: "false"}).Inc()
-		}
 		slog.ErrorCtx(ctx, "failed sending help data: "+err.Error())
-	}
-	if s.m.enabled {
-		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName}).Inc()
 	}
 }

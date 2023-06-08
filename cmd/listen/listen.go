@@ -17,6 +17,7 @@ import (
 	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 // Cmd listenCmd represents the listen command
@@ -136,7 +137,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
 		listen := false
 		if config.GlobalConfig.Metrics.HealthcheckEnabled {
-			http.HandleFunc("/api/v1/healthcheck", healthcheck)
+			http.HandleFunc("/api/v1/healthcheck", util.Healthcheck)
 			listen = true
 		}
 		if config.GlobalConfig.Metrics.MetricsEnabled {
@@ -155,6 +156,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 		slog.Info("Bot started, CTL-C to quit")
 	})
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.help))
+	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.license))
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoQuote))
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoInsomniac))
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.dispatchRollCommands))
@@ -179,8 +181,4 @@ func runListen(_ *cobra.Command, _ []string) error {
 	<-sc
 
 	return closeErr
-}
-
-func healthcheck(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(200)
 }

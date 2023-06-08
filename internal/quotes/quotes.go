@@ -3,12 +3,12 @@ package quotes
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/exp/rand"
 )
 
 const getQuoteQuery = `
@@ -39,8 +39,10 @@ func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngineImpl, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get quote count: %w", err)
 	}
+	src := &rand.PCGSource{}
+	src.Seed(uint64(time.Now().UnixNano()))
 	engine := &QuoteEngineImpl{
-		rng:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:    rand.New(src),
 		lock:   sync.Mutex{},
 		dbPool: connPool,
 		size:   size,

@@ -10,6 +10,7 @@ var interactionTimeout = time.Second * 2
 
 var Commands = []*discordgo.ApplicationCommand{
 	helpSlashCommand,
+	licenseSlashCommand,
 	weatherSlashCommand,
 	rollSlashCommand,
 	shadowrunRollSlashCommand,

@@ -4,8 +4,8 @@ token = "example_token_here"
 insomniac_ids = ["id1", "6789"]
 insomniac_roles = ["role1", "9876"]
 listen_configs = [
-    {guild_id = "12345", report_channel_id = "67890"},
-    {guild_id = "54321", report_channel_id = "98760"}
+    {guild_id = "12345", report_channel_id = "67890", start_time = "16:00"},
+    {guild_id = "54321", report_channel_id = "98760", start_time = "10:00"}
 ]
 default_weather_locations = ["New York", "Paris"]
 

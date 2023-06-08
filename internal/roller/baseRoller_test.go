@@ -1,13 +1,17 @@
 package roller
 
 import (
-	"math/rand"
 	"sync"
 	"testing"
-	"time"
+
+	"golang.org/x/exp/rand"
 )
 
+const rngSeed = 8675309
+
 func TestBaseRoller_getRoll(t *testing.T) {
+	src := &rand.PCGSource{}
+	src.Seed(rngSeed)
 	type fields struct {
 		rng  *rand.Rand
 		lock *sync.Mutex
@@ -24,7 +28,7 @@ func TestBaseRoller_getRoll(t *testing.T) {
 	}{
 		{
 			"basic",
-			fields{rand.New(rand.NewSource(time.Now().UnixNano())), &sync.Mutex{}},
+			fields{rand.New(src), &sync.Mutex{}},
 			args{6},
 			1,
 			6},
@@ -43,6 +47,8 @@ func TestBaseRoller_getRoll(t *testing.T) {
 }
 
 func TestBaseRoller_DoRoll(t *testing.T) {
+	src := &rand.PCGSource{}
+	src.Seed(rngSeed)
 	type fields struct {
 		rng  *rand.Rand
 		lock *sync.Mutex
@@ -61,7 +67,7 @@ func TestBaseRoller_DoRoll(t *testing.T) {
 	}{
 		{
 			"basic_bounds",
-			fields{rand.New(rand.NewSource(time.Now().UnixNano())), &sync.Mutex{}},
+			fields{rand.New(src), &sync.Mutex{}},
 			args{5, 12},
 			1,
 			12,
@@ -69,7 +75,7 @@ func TestBaseRoller_DoRoll(t *testing.T) {
 		},
 		{
 			"large_roll_count",
-			fields{rand.New(rand.NewSource(time.Now().UnixNano())), &sync.Mutex{}},
+			fields{rand.New(src), &sync.Mutex{}},
 			args{300, 6},
 			1,
 			6,

@@ -12,6 +12,8 @@ import (
 	"github.com/dmtaylor/costanza/internal/db"
 )
 
+// TODO add interface for this & rename struct. Should have done this from the beginning but whatever
+
 type Stats struct {
 	pool *pgxpool.Pool
 }

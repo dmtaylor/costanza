@@ -6,12 +6,12 @@ require (
 	github.com/alecthomas/participle/v2 v2.0.0
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/georgysavva/scany/v2 v2.0.0
+	github.com/go-co-op/gocron v1.28.2
 	github.com/jackc/pgx/v5 v5.3.1
 	github.com/magefile/mage v1.14.0
 	github.com/prometheus/client_golang v1.15.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
-	go.uber.org/multierr v1.11.0
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )
 
@@ -19,7 +19,6 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
-	github.com/go-co-op/gocron v1.28.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

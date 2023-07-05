@@ -49,7 +49,7 @@ func runQuote(_ *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to get quote: %w", err)
 		}
-		fmt.Printf("%d: %s\n", i+1, quote)
+		fmt.Printf("%d: %+v\n", i+1, quote)
 	}
 	return nil
 }

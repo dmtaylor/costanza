@@ -8,6 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 
+	"github.com/dmtaylor/costanza/internal/db"
 	"github.com/dmtaylor/costanza/internal/util"
 )
 
@@ -45,7 +46,7 @@ func (s *Server) echoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) 
 }
 
 func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) error {
-	quote, err := s.app.Quotes.GetQuoteSql(ctx)
+	quoteData, err := s.app.Quotes.GetQuoteSql(ctx)
 	if err != nil {
 		slog.ErrorCtx(ctx, "failed to get quote: "+err.Error())
 		_, err := sess.ChannelMessageSendReply(
@@ -58,14 +59,31 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 		}
 		return err
 	}
-	callStart := time.Now()
-	_, err = sess.ChannelMessageSendReply(m.ChannelID, quote, m.Reference())
-	if s.m.enabled {
-		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: quoteEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+	switch quoteData.Type {
+	case db.TextQuoteType:
+		callStart := time.Now()
+		_, err = sess.ChannelMessageSendReply(m.ChannelID, quoteData.Data, m.Reference())
+		if s.m.enabled {
+			s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: quoteEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+		}
+		if err != nil {
+			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
+			return err
+		}
+	case db.FileQuoteType:
+		err = s.sendFileQuote(ctx, sess, m, quoteData)
+		if err != nil {
+			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
+			return err
+		}
+	default:
+		slog.ErrorCtx(ctx, "invalid quote type in db", "quoteData", quoteData)
 	}
-	if err != nil {
-		slog.ErrorCtx(ctx, "error sending message: "+err.Error())
-		return err
-	}
+	return nil
+}
+
+func (s *Server) sendFileQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate, quoteEntry db.Quote) error {
+	// TODO implement
+
 	return nil
 }

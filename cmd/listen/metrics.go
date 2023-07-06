@@ -74,7 +74,7 @@ func (s *Server) guildMemberAddMetricsMiddleware(f func(*discordgo.Session, *dis
 }
 
 // setupMetrics configures prometheus metrics & modifies the Server object to support logging.
-// Metrics should only be logged if this function has been ran, and metrics.enabled should only be set to true here.
+// Metrics should only be logged if this function has been run, and metrics.enabled should only be set to true here.
 func (s *Server) setupMetrics() http.Handler {
 	eventReceives := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "costanza",

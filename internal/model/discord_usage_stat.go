@@ -1,4 +1,4 @@
-package db
+package model
 
 type DiscordUsageStat struct {
 	Id           uint

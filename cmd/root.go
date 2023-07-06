@@ -39,7 +39,7 @@ func init() {
 		"",
 		"Overwrite postgres connection string from env",
 	)
-	viper.BindPFlag("db.connection", rootCmd.PersistentFlags().Lookup("connectionStr"))
-	viper.BindEnv("db.connection", "COSTANZA_DB_URL")
+	viper.BindPFlag("model.connection", rootCmd.PersistentFlags().Lookup("connectionStr"))
+	viper.BindEnv("model.connection", "COSTANZA_DB_URL")
 	rootCmd.AddCommand(listen.Cmd, roll.Cmd, quoteCmd.Cmd, cfgCmd, register.Cmd, cron.Cmd)
 }

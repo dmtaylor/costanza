@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/dmtaylor/costanza/internal/db"
+	"github.com/dmtaylor/costanza/internal/model"
 )
 
 // TODO add interface for this & rename struct. Should have done this from the beginning but whatever
@@ -65,14 +65,14 @@ WHERE id = $1
 	return nil
 }
 
-func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]*db.DiscordUsageStat, error) {
+func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]*model.DiscordUsageStat, error) {
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pool connection: %w", err)
 	}
 	defer conn.Release()
 
-	var stats []*db.DiscordUsageStat
+	var stats []*model.DiscordUsageStat
 	err = pgxscan.Select(ctx, conn, &stats, `
 SELECT *
 FROM discord_usage_stats

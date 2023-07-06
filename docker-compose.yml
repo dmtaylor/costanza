@@ -4,7 +4,7 @@ services:
   costanza:
     restart: unless-stopped
     environment:
-      COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
+      COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@model:5432/costanza
       COSTANZA_METRICS_PORT: 8585
     build:
       context: .
@@ -27,7 +27,7 @@ services:
   cron:
     restart: unless-stopped
     environment:
-      COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza
+      COSTANZA_DB_URL: postgres://costanza:myvoiceismypassportverifyme@model:5432/costanza
       COSTANZA_METRICS_PORT: 8585
     secrets:
       - source: costanza_config
@@ -70,7 +70,7 @@ services:
     volumes:
       - ./migrations:/database
     command:
-      [ "-path", "/database", "-database", "postgres://costanza:myvoiceismypassportverifyme@db:5432/costanza?sslmode=disable", "up" ]
+      [ "-path", "/database", "-database", "postgres://costanza:myvoiceismypassportverifyme@model:5432/costanza?sslmode=disable", "up" ]
 
 secrets:
   costanza_config:

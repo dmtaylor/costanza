@@ -164,6 +164,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.logMessageActivity))
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.weatherCommand))
 	dg.AddHandler(server.guildMemberAddMetricsMiddleware(server.welcomeMessage))
+	//dg.AddHandler(server.interactionCreateMetricsMiddleware(server.quoteTestCommand)) // Uncomment this to add test quote command handler
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentsGuildMembers
 
 	err = dg.Open()

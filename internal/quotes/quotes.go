@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/rand"
 
-	"github.com/dmtaylor/costanza/internal/db"
+	"github.com/dmtaylor/costanza/internal/model"
 )
 
 const getQuoteQuery = `
@@ -21,7 +21,8 @@ WHERE id = $1
 `
 
 type QuoteEngine interface {
-	GetQuoteSql(ctx context.Context) (db.Quote, error)
+	GetQuoteSql(ctx context.Context) (model.Quote, error)
+	GetQuoteById(ctx context.Context, id int) (model.Quote, error)
 }
 
 type QuoteEngineImpl struct {
@@ -54,22 +55,26 @@ func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngineImpl, error) {
 	return engine, nil
 }
 
-func (q *QuoteEngineImpl) GetQuoteSql(ctx context.Context) (db.Quote, error) {
+func (q *QuoteEngineImpl) GetQuoteSql(ctx context.Context) (model.Quote, error) {
 	q.lock.Lock()
 	idx := q.rng.Intn(int(q.size))
 	q.lock.Unlock()
+	return q.GetQuoteById(ctx, idx)
+}
+
+func (q *QuoteEngineImpl) GetQuoteById(ctx context.Context, id int) (model.Quote, error) {
 	conn, err := q.dbPool.Acquire(ctx)
 	if err != nil {
-		return db.Quote{}, fmt.Errorf("failed to acquire connection: %w", err)
+		return model.Quote{}, fmt.Errorf("failed to acquire connection: %w", err)
 	}
 	defer conn.Release()
-	rows, err := conn.Query(ctx, getQuoteQuery, idx)
+	rows, err := conn.Query(ctx, getQuoteQuery, id)
 	if err != nil {
-		return db.Quote{}, fmt.Errorf("failed to execute query: %w", err)
+		return model.Quote{}, fmt.Errorf("failed to execute query: %w", err)
 	}
-	var result db.Quote
-	if err := pgxscan.ScanOne(&result, rows); err != nil {
-		return db.Quote{}, fmt.Errorf("failed to scan result: %w", err)
+	var result model.Quote
+	if err = pgxscan.ScanOne(&result, rows); err != nil {
+		return model.Quote{}, fmt.Errorf("failed to scan result: %w", err)
 	}
 	return result, nil
 }

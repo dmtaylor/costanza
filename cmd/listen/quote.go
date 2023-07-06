@@ -2,13 +2,17 @@ package listen
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/exp/slog"
 
-	"github.com/dmtaylor/costanza/internal/db"
+	"github.com/dmtaylor/costanza/internal/model"
 	"github.com/dmtaylor/costanza/internal/util"
 )
 
@@ -60,7 +64,7 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 		return err
 	}
 	switch quoteData.Type {
-	case db.TextQuoteType:
+	case model.TextQuoteType:
 		callStart := time.Now()
 		_, err = sess.ChannelMessageSendReply(m.ChannelID, quoteData.Data, m.Reference())
 		if s.m.enabled {
@@ -70,20 +74,37 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
 			return err
 		}
-	case db.FileQuoteType:
-		err = s.sendFileQuote(ctx, sess, m, quoteData)
+	case model.FileQuoteType:
+		err = s.sendFileQuote(sess, m, quoteData)
 		if err != nil {
 			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
 			return err
 		}
 	default:
-		slog.ErrorCtx(ctx, "invalid quote type in db", "quoteData", quoteData)
+		slog.ErrorCtx(ctx, "invalid quote type in model", "quoteData", quoteData)
+		return model.InvalidQuoteTypeError(quoteData.Type)
 	}
 	return nil
 }
 
-func (s *Server) sendFileQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate, quoteEntry db.Quote) error {
-	// TODO implement
+func (s *Server) sendFileQuote(sess *discordgo.Session, m *discordgo.MessageCreate, quoteEntry model.Quote) error {
+	file, err := os.Open(quoteEntry.Data)
+	if err != nil {
+		return fmt.Errorf("failed to open attachment file: %w", err)
+	}
+	defer file.Close()
+	callStart := time.Now()
+	_, err = sess.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+		Files: []*discordgo.File{{
+			Name:        filepath.Base(quoteEntry.Data),
+			ContentType: strings.Replace(".", "", filepath.Ext(quoteEntry.Data), 1),
+			Reader:      file,
+		}},
+		Reference: m.Reference(),
+	})
+	if s.m.enabled {
+		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: quoteEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+	}
 
-	return nil
+	return err
 }

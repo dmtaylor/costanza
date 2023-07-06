@@ -49,7 +49,7 @@ func Rebuild() error {
 func Tests() error {
 	mg.Deps(Build)
 	fmt.Println("running tests...")
-	cmd := exec.Command("go", "test", "-v", "./...")
+	cmd := exec.Command("go", "test", "-v", "-bench=.", "./...")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

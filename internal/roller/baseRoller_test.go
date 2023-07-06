@@ -100,3 +100,19 @@ func TestBaseRoller_DoRoll(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkBaseRoller_DoRoll(b *testing.B) {
+	src := &rand.PCGSource{}
+	src.Seed(rngSeed)
+	r := &BaseRoller{
+		rng:  rand.New(src),
+		lock: &sync.Mutex{},
+	}
+	rollcount := 5
+	sides := 20
+
+	for i := 0; i < b.N; i++ {
+		_ = r.DoRoll(rollcount, sides)
+	}
+
+}

@@ -20,11 +20,6 @@ type DNotationParser struct {
 	lock   sync.Mutex
 }
 
-type DNotationResult struct {
-	Value    int
-	StrValue string
-}
-
 const (
 	OpMul  Operator = iota // '*'
 	OpDiv                  // '/'

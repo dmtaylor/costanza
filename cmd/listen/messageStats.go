@@ -53,7 +53,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 			slog.ErrorCtx(ctx, "error logging activity: "+err.Error())
 			return
 		}
-		err = s.app.Stats.LogActivity(context.Background(), guildId, userId, m.Timestamp.Format("2006-01"))
+		err = s.app.Stats.LogActivity(ctx, guildId, userId, m.Timestamp.Format("2006-01"))
 		if err != nil {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: logActivityMetricEventName, isTimeoutLabel: "false"}).Inc()

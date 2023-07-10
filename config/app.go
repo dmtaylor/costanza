@@ -42,6 +42,13 @@ func LoadApp() (*App, error) {
 			err = fmt.Errorf("failed to build connection pool: %w", err)
 			return
 		}
+		// acquire & release connection to test db connection at app load
+		c, err := pool.Acquire(context.Background())
+		if err != nil {
+			err = fmt.Errorf("failed to get db connection: %w", err)
+			return
+		}
+		c.Release()
 		qEngine, err := quotes.NewQuoteEngine(pool)
 		if err != nil {
 			err = fmt.Errorf("server failed to build quote engine: %w", err)

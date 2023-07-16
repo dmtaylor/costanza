@@ -12,6 +12,8 @@ import (
 )
 
 const testSeed = 12345
+const shortParseExpression = "1d6 + 2"
+const longParseExpression = "(2d4 + 2 * 2) - (5d6 - 5) / 3 + (10d10 + 20d4 * 1d4)"
 
 func TestDNotationParser_DoParse(t *testing.T) {
 	tests := []struct {
@@ -108,5 +110,39 @@ func TestNewDNotationParser(t *testing.T) {
 	if got == nil {
 		t.Errorf("nil DNotationParser")
 		return
+	}
+}
+
+// TODO add benchmark tests
+
+func BenchmarkDNotationParser_DoParseShort(b *testing.B) {
+	parser, err := NewDNotationParser()
+	if err != nil {
+		b.Errorf("failed to build parser: %s", err.Error())
+		return
+	}
+	parser.roller = roller.NewTestBaseRoller(testSeed)
+	for i := 0; i < b.N; i++ {
+		_, err = parser.DoParse(shortParseExpression)
+		if err != nil {
+			b.Errorf("failure running expression: %v", err)
+			return
+		}
+	}
+}
+
+func BenchmarkDNotationParser_DoParseLong(b *testing.B) {
+	parser, err := NewDNotationParser()
+	if err != nil {
+		b.Errorf("failed to build parser: %s", err.Error())
+		return
+	}
+	parser.roller = roller.NewTestBaseRoller(testSeed)
+	for i := 0; i < b.N; i++ {
+		_, err = parser.DoParse(longParseExpression)
+		if err != nil {
+			b.Errorf("failure running expression: %v", err)
+			return
+		}
 	}
 }

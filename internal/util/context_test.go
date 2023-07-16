@@ -48,3 +48,7 @@ func TestContextFromDiscordMessageCreate(t *testing.T) {
 		return
 	}
 }
+
+func TestContextFromDiscordInteractionCreate(t *testing.T) {
+	//i := discordgo.InteractionCreate
+}

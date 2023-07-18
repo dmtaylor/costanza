@@ -29,26 +29,59 @@ func TestContextFromDiscordMessageCreate(t *testing.T) {
 	testCtx := ContextFromDiscordMessageCreate(context.Background(), m)
 	if guildId, ok := testCtx.Value("guildId").(string); !ok || guildId != "2345678" {
 		t.Errorf("expected guildId context value \"2345678\", got %s", guildId)
-		return
 	}
 	if channelId, ok := testCtx.Value("channelId").(string); !ok || channelId != "8901234" {
 		t.Errorf("expected channelId context value \"8901234\", got %s", channelId)
-		return
 	}
 	if messageId, ok := testCtx.Value("messageId").(string); !ok || messageId != "1234567" {
 		t.Errorf("expected messageId context value \"1234567\", got %s", messageId)
-		return
 	}
 	if messageType, ok := testCtx.Value("messageType").(discordgo.MessageType); !ok || messageType != discordgo.MessageTypeDefault {
 		t.Errorf("expected messageType context value %d, got %d", discordgo.MessageTypeDefault, messageType)
-		return
 	}
 	if userId, ok := testCtx.Value("user").(string); !ok || userId != "8675" {
 		t.Errorf("expected user id \"8675\", got %s", userId)
-		return
 	}
 }
 
 func TestContextFromDiscordInteractionCreate(t *testing.T) {
-	//i := discordgo.InteractionCreate
+	// Abridged data for InteractionCreate event. In production this will be more complete
+	i := &discordgo.InteractionCreate{&discordgo.Interaction{
+		ID:      "42",
+		GuildID: "8723",
+		Member: &discordgo.Member{
+			GuildID: "8723",
+			User: &discordgo.User{
+				ID:            "9812",
+				Username:      "vimes",
+				Email:         "vimes@example.com",
+				Discriminator: "01",
+			},
+		},
+		ChannelID: "4567",
+		Type:      discordgo.InteractionApplicationCommand,
+		Data:      discordgo.ApplicationCommandInteractionData{Name: "testCommand", ID: "12345"},
+	}}
+	ctx, cancel := ContextFromDiscordInteractionCreate(context.Background(), i, time.Second*2)
+	_, deadlineSet := ctx.Deadline()
+	if !deadlineSet {
+		t.Errorf("no deadline set in context: %v", ctx)
+	}
+	if id, ok := ctx.Value("interactionId").(string); !ok || id != "42" {
+		t.Errorf("expected interaction id \"42\", got %v", id)
+	}
+	if guildId, ok := ctx.Value("guildId").(string); !ok || guildId != "8723" {
+		t.Errorf("expected guild id \"8723\", got %v", guildId)
+	}
+	if user, ok := ctx.Value("user").(string); !ok || user != "vimes#01" {
+		t.Errorf("expected user id \"9812\", got %v", user)
+	}
+	if channelId, ok := ctx.Value("channelId").(string); !ok || channelId != "4567" {
+		t.Errorf("expected channel id \"4567\", got %v", channelId)
+	}
+	if name, ok := ctx.Value("commandName").(string); !ok || name != "testCommand" {
+		t.Errorf("expected command name \"testCommand\" got %v", name)
+	}
+
+	defer cancel()
 }

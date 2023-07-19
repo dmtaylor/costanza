@@ -1,8 +1,9 @@
 package roller
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewGetWodRollParams(t *testing.T) {
@@ -50,9 +51,8 @@ func TestNewGetWodRollParams(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewGetWodRollParams(tt.args.isNineAgain, tt.args.isEightAgain); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewGetWodRollParams() = %v, want %v", got, tt.want)
-			}
+			result := NewGetWodRollParams(tt.args.isNineAgain, tt.args.isEightAgain)
+			assert.Equal(t, tt.want, result, "parameters should match")
 		})
 	}
 }

@@ -2,8 +2,10 @@ package roller
 
 import (
 	"math"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestThresholdRoll_String(t *testing.T) {
@@ -202,20 +204,14 @@ func TestThresholdRoller_DoThresholdRoll(t *testing.T) {
 				t.Errorf("DoThresholdRoll() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DoThresholdRoll() got = %v, want %v", got, tt.want)
-			}
+			assert.Equalf(t, got, tt.want, "DoThresholdRoll() got = %v, want %v", got, tt.want)
+			assert.Equalf(t, tt.expectedValue, got.Value(), "DoThresholdRoll() value got = %v, want %v", got.Value(), tt.expectedValue)
 			if tt.expectedValue != got.Value() {
 				t.Errorf("DoThresholdRoll() value got = %v, want %v", got.Value(), tt.expectedValue)
 			}
 			gotString, err := got.String()
-			if err != nil {
-				t.Errorf("got error with string representation %v", err)
-				return
-			}
-			if gotString != tt.expectedString {
-				t.Errorf("DoThresholdRoll() string value got = %v, want %v", gotString, tt.expectedString)
-			}
+			require.Nil(t, err, "got error from string representation", err)
+			assert.Equalf(t, tt.expectedString, gotString, "DoThresholdRoll() string value got = %v, want %v", tt.expectedString, gotString)
 		})
 	}
 }

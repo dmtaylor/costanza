@@ -3,6 +3,7 @@ package quoteCmd
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
@@ -40,7 +41,7 @@ func runQuote(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to build conn pool: %w", err)
 	}
-	engine, err := quotes.NewQuoteEngine(pool)
+	engine, err := quotes.NewQuoteEngine(pool, uint64(time.Now().UnixNano()))
 	if err != nil {
 		return fmt.Errorf("failed to build engine: %w", err)
 	}

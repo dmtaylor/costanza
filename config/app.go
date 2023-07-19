@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/dmtaylor/costanza/internal/model"
 	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
 	"github.com/dmtaylor/costanza/internal/roller"
@@ -21,7 +23,7 @@ type App struct {
 	Quotes          quotes.QuoteEngine
 	DNotationParser *parser.DNotationParser
 	ThresholdRoller *roller.ThresholdRoller
-	ConnPool        *pgxpool.Pool
+	ConnPool        model.DbPool
 	Stats           *stats.Stats
 }
 
@@ -42,14 +44,13 @@ func LoadApp() (*App, error) {
 			err = fmt.Errorf("failed to build connection pool: %w", err)
 			return
 		}
-		// acquire & release connection to test db connection at app load
-		c, err := pool.Acquire(context.Background())
+		// test db connection before starting app
+		err = pool.Ping(context.Background())
 		if err != nil {
 			err = fmt.Errorf("failed to get db connection: %w", err)
 			return
 		}
-		c.Release()
-		qEngine, err := quotes.NewQuoteEngine(pool)
+		qEngine, err := quotes.NewQuoteEngine(pool, uint64(time.Now().UnixNano()))
 		if err != nil {
 			err = fmt.Errorf("server failed to build quote engine: %w", err)
 			return

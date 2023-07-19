@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/exp/rand"
 
 	"github.com/dmtaylor/costanza/internal/model"
@@ -28,11 +26,11 @@ type QuoteEngine interface {
 type QuoteEngineImpl struct {
 	rng    *rand.Rand
 	lock   sync.Mutex
-	dbPool *pgxpool.Pool
+	dbPool model.DbPool
 	size   uint
 }
 
-func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngineImpl, error) {
+func NewQuoteEngine(connPool model.DbPool, seed uint64) (*QuoteEngineImpl, error) {
 	ctx := context.Background()
 	conn, err := connPool.Acquire(ctx)
 	if err != nil {
@@ -44,7 +42,7 @@ func NewQuoteEngine(connPool *pgxpool.Pool) (*QuoteEngineImpl, error) {
 		return nil, fmt.Errorf("failed to get quote count: %w", err)
 	}
 	src := &rand.PCGSource{}
-	src.Seed(uint64(time.Now().UnixNano()))
+	src.Seed(seed)
 	engine := &QuoteEngineImpl{
 		rng:    rand.New(src),
 		lock:   sync.Mutex{},

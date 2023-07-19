@@ -7,13 +7,13 @@ import (
 )
 
 type Roll interface {
-	Repr() string
+	String() string
 	Value() int
 }
 
 type BaseRoll []int
 
-func (r *BaseRoll) Repr() (string, error) {
+func (r *BaseRoll) String() (string, error) {
 	builder := strings.Builder{}
 	_, err := builder.WriteString("[")
 	if err != nil {

@@ -14,13 +14,13 @@ func TestBaseRoll_Repr(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.r.Repr()
+			got, err := tt.r.String()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Repr() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("String() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("Repr() got = %v, want %v", got, tt.want)
+				t.Errorf("String() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

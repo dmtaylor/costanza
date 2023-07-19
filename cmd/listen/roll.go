@@ -261,7 +261,7 @@ func (s *Server) doShadowrunRoll(input string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to run threshold roll: %w", err)
 	}
-	rollRepr, err := rollResult.Repr()
+	rollRepr, err := rollResult.String()
 	if err != nil {
 		return "", fmt.Errorf("failed to get roll representation from %s: %w", input, err)
 	}
@@ -312,7 +312,7 @@ func (s *Server) doWodRoll(input string, options map[string]*discordgo.Applicati
 		if err != nil {
 			return "", fmt.Errorf("failed to get wod threshold roll for %d dice: %w", rollCount.Value, err)
 		}
-		rollResStr, err := roll.Repr()
+		rollResStr, err := roll.String()
 		if err != nil {
 			return "", fmt.Errorf("failed to get representation for roll %v: %w", roll, err)
 		}
@@ -334,7 +334,7 @@ func (s *Server) doWodChanceRoll(params roller.ThresholdParameters) (string, err
 	if err != nil {
 		return "", fmt.Errorf("failed to execute chance roll: %w", err)
 	}
-	rollResStr, err := roll.Repr()
+	rollResStr, err := roll.String()
 	if err != nil {
 		return "", fmt.Errorf("failed to get string representation of roll: %w", err)
 	}

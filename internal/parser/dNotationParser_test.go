@@ -113,8 +113,6 @@ func TestNewDNotationParser(t *testing.T) {
 	}
 }
 
-// TODO add benchmark tests
-
 func BenchmarkDNotationParser_DoParseShort(b *testing.B) {
 	parser, err := NewDNotationParser()
 	if err != nil {

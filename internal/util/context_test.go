@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -84,4 +85,37 @@ func TestContextFromDiscordInteractionCreate(t *testing.T) {
 	}
 
 	defer cancel()
+}
+
+func TestCheckCtxTimeout(t *testing.T) {
+	tests := []struct {
+		name      string
+		timeout   time.Duration
+		sleepTime time.Duration
+		wantErr   error
+	}{
+		{
+			"no_timeout",
+			time.Millisecond * 200,
+			time.Millisecond * 50,
+			nil,
+		},
+		{
+			"timeout",
+			time.Millisecond * 5,
+			time.Millisecond * 10,
+			context.DeadlineExceeded,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+			defer cancel()
+			time.Sleep(tt.sleepTime)
+			err := CheckCtxTimeout(ctx)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("ContextTimeoutCheck: expected = %v; got = %v", tt.wantErr, err)
+			}
+		})
+	}
 }

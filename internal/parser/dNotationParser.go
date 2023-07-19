@@ -135,7 +135,7 @@ func (d *Factor) Eval(baseRoller *roller.BaseRoller) (*DNotationResult, error) {
 		}
 		rollRes := baseRoller.DoRoll(nrolls, rightRes.Value)
 		nrolls = rollRes.Sum()
-		strVal, err = rollRes.Repr()
+		strVal, err = rollRes.String()
 		if err != nil {
 			return nil, err
 		}

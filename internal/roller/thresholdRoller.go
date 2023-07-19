@@ -20,7 +20,7 @@ type ThresholdRoll struct {
 	rolls  []singleThresholdRoll
 }
 
-func (t *ThresholdRoll) Repr() (string, error) {
+func (t *ThresholdRoll) String() (string, error) {
 	builder := strings.Builder{}
 	for _, roll := range t.rolls {
 		if roll.isExplode {

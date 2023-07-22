@@ -10,7 +10,7 @@ func (i InvalidQuoteTypeError) Error() string {
 }
 
 type Quote struct {
-	Id   uint
+	Id   int
 	Data string
 	Type string
 }

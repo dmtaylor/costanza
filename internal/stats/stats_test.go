@@ -86,6 +86,25 @@ func TestStats_GetLeadersSuccess(t *testing.T) {
 
 }
 
+func TestStats_GetLeadersEmptyResults(t *testing.T) {
+	guildId := uint64(9999)
+	reportMonth := "2023-02"
+	var expectedResults []*model.DiscordUsageStat
+
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to create mock db")
+	rows := mockDb.NewRows([]string{"id", "guild_id", "user_id", "report_month", "message_count"})
+	mockDb.ExpectQuery(`SELECT \*\sFROM discord_usage_stats\sWHERE guild_id = \$1 AND report_month = \$2\sORDER BY message_count DESC\sLIMIT 5`).
+		WithArgs(guildId, reportMonth).
+		WillReturnRows(rows)
+	s := New(mockDb)
+	got, err := s.GetLeaders(context.Background(), guildId, reportMonth)
+	require.Nil(t, err, "getting empty leader list failed with errors")
+	assert.Equal(t, expectedResults, got, "did not get empty list")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet mock db expectations")
+
+}
+
 func TestStats_LogActivityCreateNew(t *testing.T) {
 	var guildId uint64 = 1111
 	var userId uint64 = 2222

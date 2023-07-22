@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"github.com/jackc/pgx/v5"
 	"golang.org/x/exp/rand"
 
 	"github.com/dmtaylor/costanza/internal/model"
@@ -32,12 +31,7 @@ type QuoteEngineImpl struct {
 
 func NewQuoteEngine(connPool model.DbPool, seed uint64) (*QuoteEngineImpl, error) {
 	ctx := context.Background()
-	conn, err := connPool.Acquire(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get connection: %w", err)
-	}
-	defer conn.Release()
-	size, err := getQuoteCount(ctx, conn.Conn())
+	size, err := getQuoteCount(ctx, connPool)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get quote count: %w", err)
 	}
@@ -61,12 +55,7 @@ func (q *QuoteEngineImpl) GetQuoteSql(ctx context.Context) (model.Quote, error) 
 }
 
 func (q *QuoteEngineImpl) GetQuoteById(ctx context.Context, id int) (model.Quote, error) {
-	conn, err := q.dbPool.Acquire(ctx)
-	if err != nil {
-		return model.Quote{}, fmt.Errorf("failed to acquire connection: %w", err)
-	}
-	defer conn.Release()
-	rows, err := conn.Query(ctx, getQuoteQuery, id)
+	rows, err := q.dbPool.Query(ctx, getQuoteQuery, id)
 	if err != nil {
 		return model.Quote{}, fmt.Errorf("failed to execute query: %w", err)
 	}
@@ -77,9 +66,9 @@ func (q *QuoteEngineImpl) GetQuoteById(ctx context.Context, id int) (model.Quote
 	return result, nil
 }
 
-func getQuoteCount(ctx context.Context, conn *pgx.Conn) (uint, error) {
+func getQuoteCount(ctx context.Context, db model.DbPool) (uint, error) {
 	var size uint
-	err := conn.QueryRow(ctx, "SELECT COUNT(*) FROM quotes").Scan(&size)
+	err := db.QueryRow(ctx, "SELECT COUNT(*) FROM quotes").Scan(&size)
 	if err != nil {
 		return 0, fmt.Errorf("query failed: %w", err)
 	}

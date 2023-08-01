@@ -82,6 +82,8 @@ func runCron(_ *cobra.Command, _ []string) error {
 				slog.Error("healthcheck listen error: " + err.Error())
 				panic(err)
 			}
+		} else {
+			metricsServerStarted.Done() // unblock if metrics aren't enabled you idiot
 		}
 	}()
 	s := gocron.NewScheduler(tz)

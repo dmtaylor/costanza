@@ -3,12 +3,12 @@ package listen
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/roller"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -136,7 +136,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 	if o, ok := options[rollOptionName]; ok {
 		rollInput = o.StringValue()
 	}
-	slog.DebugCtx(ctx, "starting roll", "roll", rollInput)
+	slog.DebugContext(ctx, "starting roll", "roll", rollInput)
 
 	var result string
 	var err error
@@ -146,7 +146,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "missing roll input for interaction")
+			slog.ErrorContext(ctx, "missing roll input for interaction")
 			return
 		}
 		result, err = s.doDNotationRoll(rollInput)
@@ -155,7 +155,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "missing roll input for interaction")
+			slog.ErrorContext(ctx, "missing roll input for interaction")
 			return
 		}
 		result, err = s.doShadowrunRoll(rollInput)
@@ -182,17 +182,17 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 		if s.m.enabled {
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
 		}
-		slog.ErrorCtx(ctx, "invalid command name: "+cmdName)
+		slog.ErrorContext(ctx, "invalid command name: "+cmdName)
 		return
 	}
 	timeoutErr := util.CheckCtxTimeout(ctx)
 	if err != nil {
-		slog.ErrorCtx(ctx, "failed to process roll: "+err.Error(), "roll", rollInput)
+		slog.ErrorContext(ctx, "failed to process roll: "+err.Error(), "roll", rollInput)
 		if timeoutErr != nil { // don't send response if context timed out
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "true"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
+			slog.ErrorContext(ctx, "context err: "+timeoutErr.Error())
 			return
 		}
 		callStart := time.Now()
@@ -209,7 +209,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "failed to send interaction response: "+err.Error())
+			slog.ErrorContext(ctx, "failed to send interaction response: "+err.Error())
 		}
 		return
 	}
@@ -217,7 +217,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 		if s.m.enabled {
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "true"}).Inc()
 		}
-		slog.ErrorCtx(ctx, "context err: "+timeoutErr.Error())
+		slog.ErrorContext(ctx, "context err: "+timeoutErr.Error())
 		return
 	}
 	callStart := time.Now()
@@ -234,10 +234,10 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 		if s.m.enabled {
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
 		}
-		slog.ErrorCtx(ctx, "failed to send interaction response: "+err.Error())
+		slog.ErrorContext(ctx, "failed to send interaction response: "+err.Error())
 		return
 	}
-	slog.DebugCtx(ctx, "completed roll", "roll", rollInput)
+	slog.DebugContext(ctx, "completed roll", "roll", rollInput)
 	if s.m.enabled {
 		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName}).Inc()
 	}

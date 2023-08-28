@@ -4,6 +4,7 @@ package listen
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,7 +15,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"

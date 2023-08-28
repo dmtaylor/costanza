@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,7 +19,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -107,7 +107,7 @@ func runCron(_ *cobra.Command, _ []string) error {
 				if c.m.enabled {
 					c.m.failedReports.With(promLabels).Inc()
 				}
-				slog.ErrorCtx(ctx, "report failed: "+err.Error())
+				slog.ErrorContext(ctx, "report failed: "+err.Error())
 			} else {
 				if c.m.enabled {
 					c.m.successfulReports.With(promLabels).Inc()

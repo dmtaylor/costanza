@@ -2,11 +2,11 @@ package listen
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -57,6 +57,6 @@ func (s *Server) license(sess *discordgo.Session, i *discordgo.InteractionCreate
 		}
 	}
 	if err != nil {
-		slog.ErrorCtx(ctx, "failed sending license data: "+err.Error())
+		slog.ErrorContext(ctx, "failed sending license data: "+err.Error())
 	}
 }

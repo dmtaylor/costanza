@@ -3,12 +3,12 @@ package listen
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -47,7 +47,7 @@ func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
+			slog.ErrorContext(ctx, "error sending message: "+err.Error())
 		} else {
 			if s.m.enabled {
 				s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName}).Inc()
@@ -62,7 +62,7 @@ func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCrea
 
 func (s *Server) isInsomniacUser(ctx context.Context, user *discordgo.User, member *discordgo.Member) bool {
 	if user == nil || member == nil {
-		slog.DebugCtx(ctx, "user or member is nil, skipping")
+		slog.DebugContext(ctx, "user or member is nil, skipping")
 		return false
 	}
 
@@ -88,18 +88,18 @@ func isAfterHours(ctx context.Context) bool {
 	timeLoader.Do(func() {
 		startLateHours, err = time.Parse(time.Kitchen, "12:30AM")
 		if err != nil {
-			slog.ErrorCtx(ctx, "error parsing start date format: "+err.Error())
+			slog.ErrorContext(ctx, "error parsing start date format: "+err.Error())
 			panic(err)
 		}
 		endLateHours, err = time.Parse(time.Kitchen, "06:00AM")
 		if err != nil {
-			slog.ErrorCtx(ctx, "error parsing end date format: "+err.Error())
+			slog.ErrorContext(ctx, "error parsing end date format: "+err.Error())
 			panic(err)
 		}
 	})
 	currentTime, err := time.Parse(time.Kitchen, time.Now().Format(time.Kitchen))
 	if err != nil {
-		slog.WarnCtx(ctx, "failed to parse current time: "+err.Error())
+		slog.WarnContext(ctx, "failed to parse current time: "+err.Error())
 		return false
 	}
 	return startLateHours.Before(currentTime) && endLateHours.After(currentTime)

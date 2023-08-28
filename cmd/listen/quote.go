@@ -3,6 +3,7 @@ package listen
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/model"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -52,14 +52,14 @@ func (s *Server) echoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) 
 func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) error {
 	quoteData, err := s.app.Quotes.GetQuoteSql(ctx)
 	if err != nil {
-		slog.ErrorCtx(ctx, "failed to get quote: "+err.Error())
+		slog.ErrorContext(ctx, "failed to get quote: "+err.Error())
 		_, err := sess.ChannelMessageSendReply(
 			m.ChannelID,
 			"I was unable to get a quote. Why must there always be a problem?",
 			m.Reference(),
 		)
 		if err != nil {
-			slog.ErrorCtx(ctx, "error sending message: ", err.Error())
+			slog.ErrorContext(ctx, "error sending message: "+err.Error())
 		}
 		return err
 	}
@@ -71,17 +71,17 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 			s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: quoteEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
 		}
 		if err != nil {
-			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
+			slog.ErrorContext(ctx, "error sending message: "+err.Error())
 			return err
 		}
 	case model.FileQuoteType:
 		err = s.sendFileQuote(sess, m, quoteData)
 		if err != nil {
-			slog.ErrorCtx(ctx, "error sending message: "+err.Error())
+			slog.ErrorContext(ctx, "error sending message: "+err.Error())
 			return err
 		}
 	default:
-		slog.ErrorCtx(ctx, "invalid quote type in model", "quoteData", quoteData)
+		slog.ErrorContext(ctx, "invalid quote type in model", "quoteData", quoteData)
 		return model.InvalidQuoteTypeError(quoteData.Type)
 	}
 	return nil

@@ -2,12 +2,12 @@ package listen
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -42,7 +42,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: logActivityMetricEventName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "error logging activity: "+err.Error())
+			slog.ErrorContext(ctx, "error logging activity: "+err.Error())
 			return
 		}
 		userId, err := strconv.ParseUint(m.Author.ID, 10, 64)
@@ -50,7 +50,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: logActivityMetricEventName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "error logging activity: "+err.Error())
+			slog.ErrorContext(ctx, "error logging activity: "+err.Error())
 			return
 		}
 		err = s.app.Stats.LogActivity(ctx, guildId, userId, m.Timestamp.Format("2006-01"))
@@ -58,7 +58,7 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: logActivityMetricEventName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorCtx(ctx, "error creating activity log: "+err.Error())
+			slog.ErrorContext(ctx, "error creating activity log: "+err.Error())
 		}
 	}
 	if s.m.enabled {

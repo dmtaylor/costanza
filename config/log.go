@@ -1,10 +1,9 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"strings"
-
-	"golang.org/x/exp/slog"
 )
 
 func getLogLevel(lvl string) slog.Level {

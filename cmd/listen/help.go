@@ -2,11 +2,11 @@ package listen
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/util"
 )
@@ -54,7 +54,7 @@ func (s *Server) help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	}
 	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
 	defer cancel()
-	slog.DebugCtx(ctx, "running help command")
+	slog.DebugContext(ctx, "running help command")
 	callStart := time.Now()
 	err := sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -71,6 +71,6 @@ func (s *Server) help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
 		}
 	}
 	if err != nil {
-		slog.ErrorCtx(ctx, "failed sending help data: "+err.Error())
+		slog.ErrorContext(ctx, "failed sending help data: "+err.Error())
 	}
 }

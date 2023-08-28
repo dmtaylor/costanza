@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/util"
@@ -61,14 +61,14 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 	if len(locations) < 1 {
 		locations = config.GlobalConfig.Discord.DefaultWeatherLocations
 	}
-	slog.DebugCtx(ctx, "running weather command", "locations", locations)
+	slog.DebugContext(ctx, "running weather command", "locations", locations)
 	msg, err := s.getWeatherString(ctx, locations)
 	if err != nil {
 		if s.m.enabled {
 			isTimeout := strconv.FormatBool(errors.Is(err, context.DeadlineExceeded))
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName, isTimeoutLabel: isTimeout}).Inc()
 		}
-		slog.ErrorCtx(ctx, "failed getting weather data: "+err.Error(), "locations", locations)
+		slog.ErrorContext(ctx, "failed getting weather data: "+err.Error(), "locations", locations)
 		return
 	}
 	err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
@@ -81,10 +81,10 @@ func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.Interactio
 		if s.m.enabled {
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName, isTimeoutLabel: "false"}).Inc()
 		}
-		slog.ErrorCtx(ctx, "failed sending weather response: "+err.Error())
+		slog.ErrorContext(ctx, "failed sending weather response: "+err.Error())
 		return
 	}
-	slog.DebugCtx(ctx, "finished weather command")
+	slog.DebugContext(ctx, "finished weather command")
 	if s.m.enabled {
 		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName}).Inc()
 	}
@@ -97,7 +97,7 @@ func (s *Server) getWeatherString(ctx context.Context, locations []string) (stri
 			return "", fmt.Errorf("context error: %w", err)
 		}
 		path := weatherBase + "/" + url.PathEscape(location) + "?format=3"
-		slog.DebugCtx(ctx, "getting weather data", "location", location, "weatherCall", path)
+		slog.DebugContext(ctx, "getting weather data", "location", location, "weatherCall", path)
 		callStart := time.Now()
 		res, err := http.Get(path)
 		if s.m.enabled {
@@ -118,7 +118,7 @@ func (s *Server) getWeatherString(ctx context.Context, locations []string) (stri
 		if err != nil {
 			return "", fmt.Errorf("failed to grow buffer: %w", err)
 		}
-		slog.DebugCtx(ctx, "got weather data", "location", location)
+		slog.DebugContext(ctx, "got weather data", "location", location)
 
 	}
 	return b.String(), nil

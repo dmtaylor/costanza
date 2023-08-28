@@ -3,11 +3,11 @@ package listen
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 
 	"github.com/dmtaylor/costanza/internal/util"
 )
@@ -37,7 +37,7 @@ func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCrea
 					s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName, isTimeoutLabel: "false"}).Inc()
 					s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: dailyWinReactMetricName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
 				}
-				slog.ErrorCtx(ctx, fmt.Sprintf("error adding reaction: %s", err))
+				slog.ErrorContext(ctx, fmt.Sprintf("error adding reaction: %s", err))
 				return
 			}
 			if s.m.enabled {

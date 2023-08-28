@@ -3,11 +3,11 @@ package listen
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/exp/slog"
 )
 
 const welcomeMessageFmt = `Welcome to the party %s!`
@@ -38,11 +38,11 @@ func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMembe
 		if s.m.enabled {
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName, isTimeoutLabel: "false"}).Inc()
 		}
-		slog.ErrorCtx(ctx, "error getting channel list: "+err.Error())
+		slog.ErrorContext(ctx, "error getting channel list: "+err.Error())
 		return
 	}
 	if len(channels) < 1 {
-		slog.WarnCtx(ctx, "no guild channels pulled, ignoring")
+		slog.WarnContext(ctx, "no guild channels pulled, ignoring")
 		return
 	}
 	for _, channel := range channels {
@@ -56,7 +56,7 @@ func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMembe
 				if s.m.enabled {
 					s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: "welcome", isTimeoutLabel: "false"}).Inc()
 				}
-				slog.ErrorCtx(ctx, "failed to send message: "+err.Error(), "channel", channel.ID)
+				slog.ErrorContext(ctx, "failed to send message: "+err.Error(), "channel", channel.ID)
 			}
 			break
 		}

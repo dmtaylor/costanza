@@ -25,4 +25,5 @@ E.g
         ...
 * Verify that all tests pass before opening a review.
 * Tend towards writing tests for any added code. There are definitely cases where adding tests is impractical: a general
-guideline is "if the code doesn't make a networked API call, it should have a test."
+guideline is "if the code doesn't make a networked API call, it should have a test." The target minimum test coverage
+is 75%.

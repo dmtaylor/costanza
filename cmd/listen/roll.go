@@ -140,25 +140,26 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 
 	var result string
 	var err error
+	roll := util.PreprocessRoll(rollInput)
 	switch cmdName {
 	case rollCommandName:
-		if rollInput == "" {
+		if roll == "" {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
 			}
 			slog.ErrorContext(ctx, "missing roll input for interaction")
 			return
 		}
-		result, err = s.doDNotationRoll(rollInput)
+		result, err = s.doDNotationRoll(roll)
 	case shadowrunCommandName:
-		if rollInput == "" {
+		if roll == "" {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()
 			}
 			slog.ErrorContext(ctx, "missing roll input for interaction")
 			return
 		}
-		result, err = s.doShadowrunRoll(rollInput)
+		result, err = s.doShadowrunRoll(roll)
 	case worldOfDarknessCommandName:
 		result, err = s.doWodRoll(rollInput, options) // pass in option set for WoD specific options
 		if o, ok := options["chance"]; ok {
@@ -177,7 +178,7 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			}
 		}
 	case darkHeresyTestCommandName:
-		result, err = s.doDHTestRoll(rollInput)
+		result, err = s.doDHTestRoll(roll)
 	default:
 		if s.m.enabled {
 			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName, isTimeoutLabel: "false"}).Inc()

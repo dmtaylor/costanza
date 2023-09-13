@@ -3,6 +3,7 @@ package listen
 import (
 	"context"
 	"log/slog"
+	"runtime/debug"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -13,6 +14,18 @@ import (
 )
 
 const licenseCommandName = "license"
+
+var commit = func() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value
+			}
+		}
+	}
+
+	return ""
+}()
 
 var licenseSlashCommand = &discordgo.ApplicationCommand{
 	Name:        licenseCommandName,
@@ -45,7 +58,7 @@ func (s *Server) license(sess *discordgo.Session, i *discordgo.InteractionCreate
 	err := sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "costanza " + config.VersionString + "\nLicensed with Apache 2.0\nFor more information & source code: https://github.com/dmtaylor/costanza",
+			Content: "costanza " + config.VersionString + "." + commit + "\nLicensed with Apache 2.0\nFor more information & source code: https://github.com/dmtaylor/costanza",
 		},
 	})
 	if s.m.enabled {

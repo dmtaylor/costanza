@@ -134,6 +134,13 @@ func runListen(_ *cobra.Command, _ []string) error {
 		slog.Error("failed to config bot: " + err.Error())
 		return err
 	}
+
+	// Set shard info in discord ws connection
+	if config.GlobalConfig.Discord.ShardCount > 1 {
+		dg.ShardID = config.GlobalConfig.Discord.ShardId
+		dg.ShardCount = config.GlobalConfig.Discord.ShardCount
+	}
+
 	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
 		listen := false
 		if config.GlobalConfig.Metrics.HealthcheckEnabled {

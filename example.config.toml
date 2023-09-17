@@ -1,6 +1,8 @@
 [discord]
 app_id = "app_id_here"
 token = "example_token_here"
+shard_id = 0
+shard_count = 1
 insomniac_ids = ["id1", "6789"]
 insomniac_roles = ["role1", "9876"]
 listen_configs = [

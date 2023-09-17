@@ -22,6 +22,8 @@ type ListenConfig struct {
 type DiscordConfig struct {
 	AppId                   string         `mapstructure:"app_id"`
 	Token                   string         `mapstructure:"token"`
+	ShardId                 int            `mapstructure:"shard_id"`
+	ShardCount              int            `mapstructure:"shard_count"`
 	InsomniacIds            []string       `mapstructure:"insomniac_ids"`
 	InsomniacRoles          []string       `mapstructure:"insomniac_roles"`
 	ListenConfigs           []ListenConfig `mapstructure:"listen_configs"`

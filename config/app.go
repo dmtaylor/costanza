@@ -16,7 +16,7 @@ import (
 )
 
 // VersionString current tagged version for application
-const VersionString = "v1.3.1"
+const VersionString = "v1.4.0"
 
 // App represents the current app components & state
 type App struct {

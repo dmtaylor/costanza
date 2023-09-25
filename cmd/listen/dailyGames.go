@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -12,10 +14,20 @@ import (
 	"github.com/dmtaylor/costanza/internal/util"
 )
 
-const dailyWinReactMetricName = "dailyWinReact"
+type DailyGamePlay struct {
+	GuildId uint64
+	UserId  uint64
+	Tries   uint
+	Win     bool
+}
 
-// dailyWinReact performs reaction if it detects a win pattern in the message
-func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCreate) {
+const dailyWinReactMetricName = "dailyGameHandler"
+
+var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Heardle|GuessTheGame|Episode)\s+.*#?\d+.*[🟩⬛⬜🟥]`)
+var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#(Tradle|Wordle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
+
+// dailyGameHandler performs handling of
+func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
@@ -50,4 +62,60 @@ func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCrea
 	if s.m.enabled {
 		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName}).Inc()
 	}
+}
+
+func isGameMessage(message string) bool {
+	return gamePattern.MatchString(message)
+}
+
+func createGameResult(guildId, userId uint64, gameType, message string) (DailyGamePlay, error) {
+	result := DailyGamePlay{
+		guildId,
+		userId,
+		0,
+		false,
+	}
+	switch gameType {
+	case "Framed":
+		fallthrough
+	case "Heardle":
+		fallthrough
+	case "GuessTheGame":
+		fallthrough
+	case "Episode":
+		for _, r := range []rune(message) {
+			if r == '🟥' {
+				result.Tries += 1
+			} else if r == '🟩' {
+				result.Tries += 1
+				result.Win = true
+				break
+			}
+		}
+	case "Tradle":
+		fallthrough
+	case "Wordle":
+		groups := wordleAndTradleCapturePattern.FindStringSubmatch(message)
+		if groups == nil {
+			return result, fmt.Errorf("invalid wordle/tradle match \"%s\"", message)
+		}
+		total, err := strconv.ParseUint(groups[3], 10, 32)
+		if err != nil {
+			return result, fmt.Errorf("failed parsing total: %w", err)
+		}
+		if groups[2] == "X" {
+			result.Tries = uint(total)
+		} else {
+			guesses, err := strconv.ParseUint(groups[2], 10, 32)
+			if err != nil {
+				return result, fmt.Errorf("failed parsing guesses: %w", err)
+			}
+			result.Tries = uint(guesses)
+			result.Win = true
+		}
+	default:
+		return result, fmt.Errorf("invalid game type: %s", gameType)
+	}
+
+	return result, nil
 }

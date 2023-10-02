@@ -20,7 +20,6 @@ func Test_createGameResult(t *testing.T) {
 		want          DailyGamePlay
 		expectedError error
 	}{
-		// TODO: Add test cases.
 		{
 			"invalid_game_type",
 			args{
@@ -52,6 +51,25 @@ https://framed.wtf/`,
 			nil,
 		},
 		{
+			"framed_loss",
+			args{
+				111,
+				112,
+				"Framed",
+				`Framed #566
+🎥 🟥 🟥 🟥 🟥 🟥 🟥
+
+https://framed.wtf/`,
+			},
+			DailyGamePlay{
+				111,
+				112,
+				6,
+				false,
+			},
+			nil,
+		},
+		{
 			"GuessTheGame_win",
 			args{
 				201,
@@ -69,6 +87,48 @@ https://guessthe.game/`,
 				202,
 				1,
 				true,
+			},
+			nil,
+		},
+		{
+			"wordle_win",
+			args{
+				301,
+				302,
+				"Wordle",
+				`Wordle 559 2/6
+
+⬛🟨🟩⬛⬛
+🟩🟩🟩🟩🟩`,
+			},
+			DailyGamePlay{
+				301,
+				302,
+				2,
+				true,
+			},
+			nil,
+		},
+		{
+			"wordle_loss",
+			args{
+				401,
+				402,
+				"Wordle",
+				`Wordle 576 X/6
+
+⬛⬛⬛🟨⬛
+⬛⬛⬛⬛🟨
+⬛🟩🟩🟩🟩
+⬛🟩🟩🟩🟩
+⬛🟩🟩🟩🟩
+⬛🟩🟩🟩🟩`,
+			},
+			DailyGamePlay{
+				401,
+				402,
+				6,
+				false,
 			},
 			nil,
 		},
@@ -93,7 +153,6 @@ func Test_isGameMessage(t *testing.T) {
 		message string
 		want    bool
 	}{
-		// TODO add
 		{
 			"empty",
 			"",

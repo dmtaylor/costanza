@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/dmtaylor/costanza/internal/model"
 )
 
 func Test_createGameResult(t *testing.T) {
@@ -17,7 +19,7 @@ func Test_createGameResult(t *testing.T) {
 	tests := []struct {
 		name          string
 		args          args
-		want          DailyGamePlay
+		want          model.DailyGamePlay
 		expectedError error
 	}{
 		{
@@ -28,7 +30,7 @@ func Test_createGameResult(t *testing.T) {
 				"invalid",
 				"this is an invalid game type",
 			},
-			DailyGamePlay{},
+			model.DailyGamePlay{},
 			errors.New("invalid game type: invalid"),
 		},
 		{
@@ -42,7 +44,7 @@ func Test_createGameResult(t *testing.T) {
 
 https://framed.wtf/`,
 			},
-			DailyGamePlay{
+			model.DailyGamePlay{
 				101,
 				102,
 				3,
@@ -61,7 +63,7 @@ https://framed.wtf/`,
 
 https://framed.wtf/`,
 			},
-			DailyGamePlay{
+			model.DailyGamePlay{
 				111,
 				112,
 				6,
@@ -82,7 +84,7 @@ https://framed.wtf/`,
 #ScreenshotSleuth
 https://guessthe.game/`,
 			},
-			DailyGamePlay{
+			model.DailyGamePlay{
 				201,
 				202,
 				1,
@@ -101,7 +103,7 @@ https://guessthe.game/`,
 ⬛🟨🟩⬛⬛
 🟩🟩🟩🟩🟩`,
 			},
-			DailyGamePlay{
+			model.DailyGamePlay{
 				301,
 				302,
 				2,
@@ -124,7 +126,7 @@ https://guessthe.game/`,
 ⬛🟩🟩🟩🟩
 ⬛🟩🟩🟩🟩`,
 			},
-			DailyGamePlay{
+			model.DailyGamePlay{
 				401,
 				402,
 				6,

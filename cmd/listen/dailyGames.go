@@ -12,15 +12,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/dmtaylor/costanza/internal/model"
 	"github.com/dmtaylor/costanza/internal/util"
 )
-
-type DailyGamePlay struct {
-	GuildId uint64
-	UserId  uint64
-	Tries   uint
-	Win     bool
-}
 
 const dailyGameHandlerEventName = "dailyGameHandler"
 const dailyGameReactionEventName = "dailyGameReaction"
@@ -113,8 +107,8 @@ func isGameMessage(message string) bool {
 	return gamePattern.MatchString(message)
 }
 
-func createGameResult(guildId, userId uint64, gameType, message string) (DailyGamePlay, error) {
-	result := DailyGamePlay{
+func createGameResult(guildId, userId uint64, gameType, message string) (model.DailyGamePlay, error) {
+	result := model.DailyGamePlay{
 		guildId,
 		userId,
 		0,

@@ -82,3 +82,54 @@ func (s Stats) RemoveMonthActivity(ctx context.Context, reportMonth string) erro
 	}
 	return nil
 }
+
+func (s Stats) LogDailyGameActivity(ctx context.Context, gamePlay model.DailyGamePlay, reportMonth string) error {
+	// TODO implement
+	var gameWinStat model.DailyGameWinStat
+	err := pgxscan.Get(ctx, s.pool, &gameWinStat, `
+SELECT *
+FROM daily_game_win_stats
+WHERE guild_id = $1 AND user_id = $2 AND report_month = $3`, gamePlay.GuildId, gamePlay.UserId, reportMonth)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// TODO create new row here
+			var winCount int
+			var currentStreak int
+			var maxStreak int
+			if gamePlay.Win {
+				winCount = 1
+				currentStreak = 1
+				maxStreak = 1
+			}
+			_, err := s.pool.Exec(ctx, `
+INSERT INTO daily_game_win_stats(guild_id, user_id, report_month, play_count, guess_count, win_count, current_streak, max_streak)
+VALUES ($1, $2, $3, 1, $4, $5, $6, $7)`, gamePlay.GuildId, gamePlay.UserId, reportMonth, gamePlay.Tries, winCount, currentStreak, maxStreak)
+			if err != nil {
+				return fmt.Errorf("failed to insert new row for game stats: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to get existing game stat row: %w", err)
+		}
+	} else {
+		gameWinStat.GuessCount += int(gamePlay.Tries)
+		if gamePlay.Win {
+			gameWinStat.WinCount += 1
+			gameWinStat.CurrentStreak += 1
+			if gameWinStat.CurrentStreak > gameWinStat.MaxStreak {
+				gameWinStat.MaxStreak = gameWinStat.CurrentStreak
+			}
+		} else {
+			gameWinStat.CurrentStreak = 0
+		}
+		_, err := s.pool.Exec(ctx, `
+UPDATE daily_game_win_stats
+SET play_count = play_count + 1, guess_count = $1, win_count = $2, current_streak = $3, max_streak = $4
+WHERE id = $5`, gameWinStat.GuessCount, gameWinStat.WinCount, gameWinStat.CurrentStreak, gameWinStat.MaxStreak, gameWinStat.Id)
+		if err != nil {
+			return fmt.Errorf("failed to update win stats: %w", err)
+		}
+
+	}
+
+	return nil
+}

@@ -169,3 +169,49 @@ func TestStats_RemoveMonthActivity(t *testing.T) {
 	assert.Nil(t, err, "got error when deleting stats")
 	assert.Nil(t, db.ExpectationsWereMet(), "unmet mock db expectations")
 }
+
+func TestStats_LogDailyGameActivityUpdate(t *testing.T) {
+	var guildId uint64 = 5555
+	var userId uint64 = 6666
+	reportMonth := "2023-10"
+
+	gamePlay := model.DailyGamePlay{
+		GuildId: guildId,
+		UserId:  userId,
+		Tries:   2,
+		Win:     true,
+	}
+	dbModel := model.DailyGameWinStat{
+		Id:            8,
+		GuildId:       guildId,
+		UserId:        userId,
+		ReportMonth:   reportMonth,
+		PlayCount:     5,
+		GuessCount:    12,
+		WinCount:      3,
+		CurrentStreak: 1,
+		MaxStreak:     2,
+	}
+
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build mock")
+	defer mockDb.Close()
+	rows := mockDb.NewRows([]string{"id", "guild_id", "user_id", "report_month", "play_count", "guess_count", "win_count", "current_streak", "max_streak"}).
+		AddRow(dbModel.Id, dbModel.GuildId, dbModel.UserId, dbModel.ReportMonth, dbModel.PlayCount, dbModel.GuessCount, dbModel.WinCount, dbModel.CurrentStreak, dbModel.MaxStreak)
+	mockDb.ExpectQuery(`
+SELECT \*
+FROM daily_game_win_stats`).
+		WithArgs(guildId, userId, reportMonth).WillReturnRows(rows)
+	mockDb.ExpectExec(`
+UPDATE daily_game_win_stats
+SET play_count = play_count \+ 1`).
+		WithArgs(dbModel.GuessCount+int(gamePlay.Tries), dbModel.WinCount+1, dbModel.CurrentStreak+1, dbModel.MaxStreak, dbModel.Id).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+
+	stats := New(mockDb)
+	err = stats.LogDailyGameActivity(context.Background(), gamePlay, reportMonth)
+	assert.Nil(t, err, "got error when updating stats")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet db expectations")
+}
+
+// TODO add more tests for win stats

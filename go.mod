@@ -7,6 +7,7 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/georgysavva/scany/v2 v2.0.0
 	github.com/go-co-op/gocron v1.32.1
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/magefile/mage v1.15.0
 	github.com/pashagolub/pgxmock/v2 v2.10.0
@@ -25,6 +26,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

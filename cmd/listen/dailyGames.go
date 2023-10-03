@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dmtaylor/costanza/internal/model"
@@ -64,22 +65,26 @@ func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageC
 		}
 		slog.DebugContext(ctx, "parsed game results", "gameResults", fmt.Sprintf("%+v", gameResult))
 		var wg sync.WaitGroup
-		var reactionError error
+		var handleError error
 		if gameResult.Tries == 1 {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				reactionError = s.doWinReaction(sess, m)
+				handleError = multierror.Append(handleError, s.doWinReaction(sess, m))
 			}()
 		}
-		// TODO add stats here
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			handleError = multierror.Append(handleError, s.app.Stats.LogDailyGameActivity(ctx, gameResult, m.Timestamp.Format("2006-01")))
+		}()
 
 		wg.Wait()
-		if reactionError != nil {
+		if handleError != nil {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorContext(ctx, fmt.Sprintf("error adding reaction: %s", reactionError))
+			slog.ErrorContext(ctx, fmt.Sprintf("error(s) adding reaction: %s", handleError))
 			return
 		}
 

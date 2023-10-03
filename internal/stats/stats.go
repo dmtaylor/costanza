@@ -92,7 +92,6 @@ FROM daily_game_win_stats
 WHERE guild_id = $1 AND user_id = $2 AND report_month = $3`, gamePlay.GuildId, gamePlay.UserId, reportMonth)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			// TODO create new row here
 			var winCount int
 			var currentStreak int
 			var maxStreak int

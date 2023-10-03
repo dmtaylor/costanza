@@ -189,7 +189,7 @@ func TestStats_LogDailyGameActivityUpdate(t *testing.T) {
 		PlayCount:     5,
 		GuessCount:    12,
 		WinCount:      3,
-		CurrentStreak: 1,
+		CurrentStreak: 2,
 		MaxStreak:     2,
 	}
 
@@ -205,7 +205,7 @@ FROM daily_game_win_stats`).
 	mockDb.ExpectExec(`
 UPDATE daily_game_win_stats
 SET play_count = play_count \+ 1`).
-		WithArgs(dbModel.GuessCount+int(gamePlay.Tries), dbModel.WinCount+1, dbModel.CurrentStreak+1, dbModel.MaxStreak, dbModel.Id).
+		WithArgs(dbModel.GuessCount+int(gamePlay.Tries), dbModel.WinCount+1, dbModel.CurrentStreak+1, dbModel.MaxStreak+1, dbModel.Id).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	stats := New(mockDb)
@@ -214,4 +214,29 @@ SET play_count = play_count \+ 1`).
 	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet db expectations")
 }
 
-// TODO add more tests for win stats
+func TestStats_LogDailyGameActivityNew(t *testing.T) {
+	var guildId uint64 = 7777
+	var userId uint64 = 7778
+	reportMonth := "2023-10"
+	gamePlay := model.DailyGamePlay{
+		GuildId: guildId,
+		UserId:  userId,
+		Tries:   1,
+		Win:     true,
+	}
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build mock")
+	defer mockDb.Close()
+	mockDb.ExpectQuery(`
+SELECT \*
+FROM daily_game_win_stats`).
+		WithArgs(guildId, userId, reportMonth).WillReturnError(pgx.ErrNoRows)
+	mockDb.ExpectExec(`
+INSERT INTO daily_game_win_stats\(guild_id, user_id, report_month, play_count, guess_count, win_count, current_streak, max_streak\)`).
+		WithArgs(guildId, userId, reportMonth, uint(1), 1, 1, 1).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	stats := New(mockDb)
+	err = stats.LogDailyGameActivity(context.Background(), gamePlay, reportMonth)
+	assert.Nil(t, err, "got error when updating stats")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet db expectations")
+}

@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/model"
 	"github.com/dmtaylor/costanza/internal/util"
 )
@@ -65,7 +66,7 @@ func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageC
 		}
 		slog.DebugContext(ctx, "parsed game results", "gameResults", fmt.Sprintf("%+v", gameResult))
 		var wg sync.WaitGroup
-		var handleError error
+		var handleError *multierror.Error
 		if gameResult.Tries == 1 {
 			wg.Add(1)
 			go func() {
@@ -73,18 +74,21 @@ func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageC
 				handleError = multierror.Append(handleError, s.doWinReaction(sess, m))
 			}()
 		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			handleError = multierror.Append(handleError, s.app.Stats.LogDailyGameActivity(ctx, gameResult, m.Timestamp.Format("2006-01")))
-		}()
+		// Only log game results if configured to listen to guild
+		if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; found {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				handleError = multierror.Append(handleError, s.app.Stats.LogDailyGameActivity(ctx, gameResult, m.Timestamp.Format("2006-01")))
+			}()
+		}
 
 		wg.Wait()
-		if handleError != nil {
+		if handleError.Len() > 0 {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
 			}
-			slog.ErrorContext(ctx, fmt.Sprintf("error(s) adding reaction: %s", handleError))
+			slog.ErrorContext(ctx, fmt.Sprintf("error(s) adding reaction: %s", handleError.Error()))
 			return
 		}
 

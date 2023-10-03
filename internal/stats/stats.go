@@ -84,7 +84,6 @@ func (s Stats) RemoveMonthActivity(ctx context.Context, reportMonth string) erro
 }
 
 func (s Stats) LogDailyGameActivity(ctx context.Context, gamePlay model.DailyGamePlay, reportMonth string) error {
-	// TODO implement
 	var gameWinStat model.DailyGameWinStat
 	err := pgxscan.Get(ctx, s.pool, &gameWinStat, `
 SELECT *
@@ -130,5 +129,29 @@ WHERE id = $5`, gameWinStat.GuessCount, gameWinStat.WinCount, gameWinStat.Curren
 
 	}
 
+	return nil
+}
+
+func (s Stats) GetDailyGameLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]*model.DailyGameWinStat, error) {
+	var gameLeaders []*model.DailyGameWinStat
+
+	err := pgxscan.Select(ctx, s.pool, &gameLeaders, `
+SELECT *
+FROM daily_game_win_stats
+WHERE guild_id = $1 AND report_month = $2
+ORDER BY win_count DESC
+LIMIT 5`, guildId, reportMonth)
+	if err != nil {
+		return nil, fmt.Errorf("failed to pull top winners: %w", err)
+	}
+
+	return gameLeaders, nil
+}
+
+func (s Stats) RemoveDailyGameLeadersForMonth(ctx context.Context, reportMonth string) error {
+	_, err := s.pool.Exec(ctx, `DELETE FROM daily_game_win_stats WHERE report_month = $1`, reportMonth)
+	if err != nil {
+		return fmt.Errorf("failed to delete stats for month: %w", err)
+	}
 	return nil
 }

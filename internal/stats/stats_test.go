@@ -240,3 +240,71 @@ INSERT INTO daily_game_win_stats\(guild_id, user_id, report_month, play_count, g
 	assert.Nil(t, err, "got error when updating stats")
 	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet db expectations")
 }
+
+func TestStats_GetDailyGameLeadersSuccess(t *testing.T) {
+	var guildId uint64 = 8888
+	reportMonth := "2023-10"
+	expectedResults := []*model.DailyGameWinStat{
+		{
+			Id:            192,
+			GuildId:       guildId,
+			UserId:        9888,
+			ReportMonth:   reportMonth,
+			PlayCount:     31,
+			GuessCount:    35,
+			WinCount:      28,
+			CurrentStreak: 5,
+			MaxStreak:     11,
+		},
+		{
+			Id:            870,
+			GuildId:       guildId,
+			UserId:        664,
+			ReportMonth:   reportMonth,
+			PlayCount:     28,
+			GuessCount:    38,
+			WinCount:      27,
+			CurrentStreak: 10,
+			MaxStreak:     10,
+		},
+		{
+			Id:            58,
+			GuildId:       guildId,
+			UserId:        9034,
+			ReportMonth:   reportMonth,
+			PlayCount:     28,
+			GuessCount:    38,
+			WinCount:      26,
+			CurrentStreak: 11,
+			MaxStreak:     12,
+		},
+	}
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build mock pool")
+	rows := mockDb.NewRows([]string{"id", "guild_id", "user_id", "report_month", "play_count", "guess_count", "win_count", "current_streak", "max_streak"}).
+		AddRow(uint(192), guildId, uint64(9888), reportMonth, 31, 35, 28, 5, 11).
+		AddRow(uint(870), guildId, uint64(664), reportMonth, 28, 38, 27, 10, 10).
+		AddRow(uint(58), guildId, uint64(9034), reportMonth, 28, 38, 26, 11, 12)
+	mockDb.ExpectQuery(`SELECT \*\sFROM daily_game_win_stats.*ORDER BY win_count DESC\sLIMIT 5`).
+		WithArgs(guildId, reportMonth).
+		WillReturnRows(rows)
+
+	s := New(mockDb)
+	got, err := s.GetDailyGameLeaders(context.Background(), guildId, reportMonth)
+	require.Nil(t, err, "getting game leaders failed with error")
+	assert.Equal(t, expectedResults, got, "result mismatch")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet mock db expectations")
+
+}
+
+func TestStats_RemoveDailyGameLeadersForMonth(t *testing.T) {
+	month := "2023-10"
+
+	db, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build mock db")
+	db.ExpectExec(`DELETE FROM daily_game_win_stats WHERE report_month`).WithArgs(month).WillReturnResult(pgxmock.NewResult("DELETE", 5))
+	s := Stats{db}
+	err = s.RemoveDailyGameLeadersForMonth(context.Background(), month)
+	assert.Nil(t, err, "got error when deleting stats")
+	assert.Nil(t, db.ExpectationsWereMet(), "unmet mock db expectations")
+}

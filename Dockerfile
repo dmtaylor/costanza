@@ -2,7 +2,6 @@ FROM golang:1.21 AS build
 
 WORKDIR /go/src/app
 COPY . .
-COPY .git .
 
 RUN go get -d -v ./...
 RUN go build -v -o costanza .

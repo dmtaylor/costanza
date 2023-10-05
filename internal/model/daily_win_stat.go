@@ -1,5 +1,7 @@
 package model
 
+import "fmt"
+
 type DailyGamePlay struct {
 	GuildId uint64
 	UserId  uint64
@@ -17,4 +19,16 @@ type DailyGameWinStat struct {
 	WinCount      int
 	CurrentStreak int
 	MaxStreak     int
+}
+
+func (d DailyGameWinStat) FormatWins() string {
+	if d.PlayCount == 0 {
+		return "Zero plays"
+	} else {
+		return fmt.Sprintf("%d wins (win rate %4.2f%%, average guesses %.2f, longest streak %d)",
+			d.WinCount,
+			float32(d.WinCount)/float32(d.PlayCount)*100,
+			float32(d.GuessCount)/float32(d.PlayCount),
+			d.MaxStreak)
+	}
 }

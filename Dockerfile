@@ -23,4 +23,4 @@ WORKDIR /home/costanza
 COPY --from=build /go/src/app/costanza /home/costanza/costanza
 COPY --chown=costanza:costanza assets /home/costanza/assets
 
-CMD [ "costanza", "listen", "--healthcheck" ]
+CMD [ "./costanza", "listen", "--healthcheck" ]

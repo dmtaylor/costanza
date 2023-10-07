@@ -167,7 +167,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoQuote))
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoInsomniac))
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.dispatchRollCommands))
-	dg.AddHandler(server.messageCreateMetricsMiddleware(server.dailyWinReact))
+	dg.AddHandler(server.messageCreateMetricsMiddleware(server.dailyGameHandler))
 	dg.AddHandler(server.messageCreateMetricsMiddleware(server.logMessageActivity))
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.weatherCommand))
 	dg.AddHandler(server.guildMemberAddMetricsMiddleware(server.welcomeMessage))

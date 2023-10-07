@@ -7,7 +7,6 @@ RUN go get -d -v ./...
 RUN go build -v -o costanza .
 
 FROM debian:stable-slim
-WORKDIR /
 
 RUN apt-get update
 RUN apt-get install -y ca-certificates
@@ -20,6 +19,8 @@ RUN useradd --create-home --shell /bin/bash costanza
 RUN mkdir /var/log/costanza && chown root:costanza /var/log/costanza && chmod 774 /var/log/costanza
 
 USER costanza:costanza
+WORKDIR /home/costanza
 COPY --from=build /go/src/app/costanza /home/costanza/costanza
+COPY --chown=costanza:costanza assets /home/costanza/assets
 
-CMD [ "/home/costanza/costanza", "listen", "--healthcheck" ]
+CMD [ "./costanza", "listen", "--healthcheck" ]

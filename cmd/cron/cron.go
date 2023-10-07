@@ -16,6 +16,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/go-co-op/gocron"
+	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -102,12 +103,14 @@ func runCron(_ *cobra.Command, _ []string) error {
 			}
 			ctx := util.ContextFromListenConfig(context.Background(), lconfig.GuildId, lconfig.ReportChannelId)
 			month := util.GetLastMonth(time.Now().UTC())
-			err := c.reportMessageStats(ctx, lconfig, month)
-			if err != nil {
+			var err *multierror.Error
+			err = multierror.Append(err, c.reportMessageStats(ctx, lconfig, month))
+			err = multierror.Append(err, c.reportDailyGameWins(ctx, lconfig, month))
+			if err.Len() > 0 {
 				if c.m.enabled {
 					c.m.failedReports.With(promLabels).Inc()
 				}
-				slog.ErrorContext(ctx, "report failed: "+err.Error())
+				slog.ErrorContext(ctx, "report(s) failed: "+err.Error())
 			} else {
 				if c.m.enabled {
 					c.m.successfulReports.With(promLabels).Inc()
@@ -124,6 +127,8 @@ func runCron(_ *cobra.Command, _ []string) error {
 		err := c.removeStats(month)
 		if err != nil {
 			slog.Error("report log cleanup failed: " + err.Error())
+		} else {
+			slog.Info("cleaned up report log for " + month)
 		}
 	})
 	if err != nil {
@@ -178,11 +183,43 @@ func (c *cronConfig) reportMessageStats(ctx context.Context, listenConfig config
 	return nil
 }
 
-func (c *cronConfig) removeStats(month string) error {
-	err := c.app.Stats.RemoveMonthActivity(context.Background(), month)
+func (c *cronConfig) reportDailyGameWins(ctx context.Context, listenConfig config.ListenConfig, month string) error {
+	guildId, err := strconv.ParseUint(listenConfig.GuildId, 10, 64)
 	if err != nil {
-		return fmt.Errorf("failed to remove monthly stats for %s: %w", month, err)
+		return fmt.Errorf("unable to parse guild id %s, %w", listenConfig.GuildId, err)
 	}
-	slog.Info("successfully removed monthly stats", "month", month)
+	topWinners, err := c.app.Stats.GetDailyGameLeaders(ctx, guildId, month)
+	if err != nil {
+		return fmt.Errorf("failed to get winners: %w", err)
+	}
+	if len(topWinners) < 1 {
+		return nil
+	}
+	builder := strings.Builder{}
+
+	_, err = builder.WriteString("Top posters for the month are:\n")
+	if err != nil {
+		return fmt.Errorf("failed to build string: %w", err)
+	}
+	for i, dailyGameWins := range topWinners {
+		user, err := c.sess.User(strconv.FormatUint(dailyGameWins.UserId, 10))
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+		line := fmt.Sprintf("#%d: %s with %s", i+1, user.Mention(), dailyGameWins.FormatWins())
+		builder.WriteString(line)
+	}
+
+	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, builder.String())
+	if err != nil {
+		return fmt.Errorf("failed to send message: %w", err)
+	}
 	return nil
+}
+
+func (c *cronConfig) removeStats(month string) error {
+	var err *multierror.Error
+	err = multierror.Append(err, c.app.Stats.RemoveMonthActivity(context.Background(), month))
+	err = multierror.Append(err, c.app.Stats.RemoveDailyGameLeadersForMonth(context.Background(), month))
+	return err.ErrorOrNil()
 }

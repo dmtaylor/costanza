@@ -4,18 +4,28 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"regexp"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/hashicorp/go-multierror"
 	"github.com/prometheus/client_golang/prometheus"
 
+	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/model"
 	"github.com/dmtaylor/costanza/internal/util"
 )
 
-const dailyWinReactMetricName = "dailyWinReact"
+const dailyGameHandlerEventName = "dailyGameHandler"
+const dailyGameReactionEventName = "dailyGameReaction"
 
-// dailyWinReact performs reaction if it detects a win pattern in the message
-func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCreate) {
+var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Heardle|GuessTheGame|Episode)\s+.*#?\d+.*[🟩⬛⬜🟥]`)
+var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#?(Tradle|Wordle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
+
+// dailyGameHandler performs handling of daily game events
+func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == sess.State.User.ID {
 		return
 	}
@@ -23,31 +33,137 @@ func (s *Server) dailyWinReact(sess *discordgo.Session, m *discordgo.MessageCrea
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
-			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName}).Observe(time.Since(start).Seconds())
+			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName}).Observe(time.Since(start).Seconds())
 		}()
 	}
 	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
-	for _, pattern := range s.dailyWinPatterns {
-		if pattern.MatchString(m.Message.Content) {
-			callStart := time.Now()
-			err := sess.MessageReactionAdd(m.ChannelID, m.Message.ID, "💯")
-			if err != nil {
-				if s.m.enabled {
-					s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName, isTimeoutLabel: "false"}).Inc()
-					s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: dailyWinReactMetricName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
-				}
-				slog.ErrorContext(ctx, fmt.Sprintf("error adding reaction: %s", err))
-				return
-			}
+	if groups := gamePattern.FindStringSubmatch(m.Content); groups != nil {
+		guildId, err := strconv.ParseUint(m.GuildID, 10, 64)
+		if err != nil {
 			if s.m.enabled {
-				s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName}).Inc()
-				s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: dailyWinReactMetricName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
 			}
+			slog.ErrorContext(ctx, "failed to parse guild id as uint64", "guildId", m.GuildID)
 			return
 		}
+		userId, err := strconv.ParseUint(m.Author.ID, 10, 64)
+		if err != nil {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
+			}
+			slog.ErrorContext(ctx, "failed to parse user id as uint64", "userId", m.Author.ID)
+			return
+		}
+		slog.DebugContext(ctx, "matched game pattern", "message", m.Content, "userId", userId, "guildId", guildId)
+		gameResult, err := createGameResult(guildId, userId, groups[1], m.Content)
+		if err != nil {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
+			}
+			slog.ErrorContext(ctx, "failed to get game results", "error", err.Error())
+			return
+		}
+		slog.DebugContext(ctx, "parsed game results", "gameResults", fmt.Sprintf("%+v", gameResult))
+		var wg sync.WaitGroup
+		var handleError *multierror.Error
+		if gameResult.Tries == 1 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				handleError = multierror.Append(handleError, s.doWinReaction(sess, m))
+			}()
+		}
+		// Only log game results if configured to listen to guild
+		if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; found {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				handleError = multierror.Append(handleError, s.app.Stats.LogDailyGameActivity(ctx, gameResult, m.Timestamp.Format("2006-01")))
+			}()
+		}
+
+		wg.Wait()
+		if handleError.Len() > 0 {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
+			}
+			slog.ErrorContext(ctx, fmt.Sprintf("error(s) adding reaction: %s", handleError.Error()))
+			return
+		}
+
 	}
+
 	if s.m.enabled {
-		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyWinReactMetricName}).Inc()
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName}).Inc()
 	}
+}
+
+func (s *Server) doWinReaction(sess *discordgo.Session, m *discordgo.MessageCreate) error {
+	callStart := time.Now()
+	err := sess.MessageReactionAdd(m.ChannelID, m.Message.ID, "💯")
+	if err != nil {
+		if s.m.enabled {
+			s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: dailyGameReactionEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
+		}
+		return fmt.Errorf("failed to add reaction: %w", err)
+	}
+
+	return nil
+}
+
+func isGameMessage(message string) bool {
+	return gamePattern.MatchString(message)
+}
+
+func createGameResult(guildId, userId uint64, gameType, message string) (model.DailyGamePlay, error) {
+	result := model.DailyGamePlay{
+		guildId,
+		userId,
+		0,
+		false,
+	}
+	switch gameType {
+	case "Framed":
+		fallthrough
+	case "Heardle":
+		fallthrough
+	case "GuessTheGame":
+		fallthrough
+	case "Episode":
+		for _, r := range []rune(message) {
+			if r == '🟥' {
+				result.Tries += 1
+			} else if r == '🟩' {
+				result.Tries += 1
+				result.Win = true
+				break
+			}
+		}
+	case "Tradle":
+		fallthrough
+	case "Wordle":
+		groups := wordleAndTradleCapturePattern.FindStringSubmatch(message)
+		if groups == nil {
+			return result, fmt.Errorf("invalid wordle/tradle match \"%s\"", message)
+		}
+		total, err := strconv.ParseUint(groups[3], 10, 32)
+		if err != nil {
+			return result, fmt.Errorf("failed parsing total: %w", err)
+		}
+		if groups[2] == "X" {
+			result.Tries = uint(total)
+		} else {
+			guesses, err := strconv.ParseUint(groups[2], 10, 32)
+			if err != nil {
+				return result, fmt.Errorf("failed parsing guesses: %w", err)
+			}
+			result.Tries = uint(guesses)
+			result.Win = true
+		}
+	default:
+		return result, fmt.Errorf("invalid game type: %s", gameType)
+	}
+
+	return result, nil
 }

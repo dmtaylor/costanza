@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/stretchr/testify/assert"
 )
 
 var eventTime = time.Date(2023, time.July, 15, 9, 0, 0, 0, time.UTC)
@@ -118,4 +119,13 @@ func TestCheckCtxTimeout(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestContextFromListenConfig(t *testing.T) {
+	parent := context.Background()
+	guildId := "12345"
+	channelId := "67890"
+	ctx := ContextFromListenConfig(parent, guildId, channelId)
+	assert.Equal(t, guildId, ctx.Value("guildId"), "mismatched guild id")
+	assert.Equal(t, channelId, ctx.Value("reportChannelId"))
 }

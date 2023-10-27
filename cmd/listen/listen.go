@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"regexp"
 	"strconv"
 	"syscall"
 
@@ -30,9 +29,8 @@ var Cmd = &cobra.Command{
 }
 
 type Server struct {
-	app              config.App
-	dailyWinPatterns []*regexp.Regexp
-	m                metrics
+	app config.App
+	m   metrics
 }
 
 func init() {
@@ -88,36 +86,8 @@ func newServer() (*Server, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load server conf: %w", err)
 	}
-	framedPattern, err := regexp.Compile(`Framed\s+#\d+\s+🎥 🟩 ⬛ ⬛ ⬛ ⬛ ⬛`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile framed pattern: %w", err)
-	}
-
-	tradlePattern, err := regexp.Compile(`#Tradle\s.*#\d+\s1/6`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile tradle pattern: %w", err)
-	}
-
-	wordlePattern, err := regexp.Compile(`#Wordle\s#?\d+\s+1/6`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile wordle pattern: %w", err)
-	}
-
-	heardlePattern, err := regexp.Compile(`#Heardle\s#\d+\s+🔊🟩⬜⬜⬜⬜⬜\n`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile heardle pattern: %w", err)
-	}
-	gamePattern, err := regexp.Compile(`GuessTheGame #\d+\s+🎮 🟩`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile guess the game pattern: %w", err)
-	}
-	episodePattern, err := regexp.Compile(`Episode #\d+\s+📺 🟩 ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ ⬛`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile episode pattern: %w", err)
-	}
 	return &Server{
-		app:              *app,
-		dailyWinPatterns: []*regexp.Regexp{framedPattern, tradlePattern, wordlePattern, heardlePattern, gamePattern, episodePattern},
+		app: *app,
 	}, nil
 }
 

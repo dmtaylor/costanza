@@ -21,7 +21,7 @@ import (
 const dailyGameHandlerEventName = "dailyGameHandler"
 const dailyGameReactionEventName = "dailyGameReaction"
 
-var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Heardle|GuessTheGame|Episode)\s+.*#?\d+.*[🟩⬛⬜🟥]`)
+var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Heardle|GuessTheGame|Episode|Flashback)\s+.*#?\d+.*[🟩⬛⬜🟥]`)
 var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#?(Tradle|Wordle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
 
 // dailyGameHandler performs handling of daily game events
@@ -160,6 +160,15 @@ func createGameResult(guildId, userId uint64, gameType, message string) (model.D
 			}
 			result.Tries = uint(guesses)
 			result.Win = true
+		}
+	case "Flashback":
+		result.Tries = 1
+		for _, r := range []rune(message) {
+			if r == '🟩' {
+				result.Win = true
+			} else if r == '🟥' {
+				result.Tries += 1
+			}
 		}
 	default:
 		return result, fmt.Errorf("invalid game type: %s", gameType)

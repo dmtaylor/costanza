@@ -134,6 +134,28 @@ https://guessthe.game/`,
 			},
 			nil,
 		},
+		{
+			"flashback_win",
+			args{
+				501,
+				502,
+				"Flashback",
+				`Flashback for October 29, 2023
+
+21 points
+🟩🟩🟩🟥🟩🟩🟩🟥
+
+Play here: 
+        https://www.nytimes.com/interactive/2023/10/27/upshot/flashback.html?hide-chrome=1`,
+			},
+			model.DailyGamePlay{
+				GuildId: 501,
+				UserId:  502,
+				Tries:   3,
+				Win:     true,
+			},
+			nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -191,6 +213,17 @@ https://guessthe.game/`,
 🟩🟩🟩🟩🟨
 🟩🟩🟩🟩🟩
 https://oec.world/en/tradle`,
+			true,
+		},
+		{
+			"flashback",
+			`Flashback for October 29, 2023
+
+21 points
+🟩🟩🟩🟥🟩🟩🟩🟥
+
+Play here: 
+        https://www.nytimes.com/interactive/2023/10/27/upshot/flashback.html?hide-chrome=1`,
 			true,
 		},
 	}

@@ -206,7 +206,7 @@ func (c *cronConfig) reportDailyGameWins(ctx context.Context, listenConfig confi
 		if err != nil {
 			return fmt.Errorf("unable to get user: %w", err)
 		}
-		line := fmt.Sprintf("#%d: %s with %s", i+1, user.Mention(), dailyGameWins.FormatWins())
+		line := fmt.Sprintf("#%d: %s with %s\n", i+1, user.Mention(), dailyGameWins.FormatWins())
 		builder.WriteString(line)
 	}
 

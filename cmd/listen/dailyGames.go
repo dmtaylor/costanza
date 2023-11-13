@@ -21,7 +21,7 @@ import (
 const dailyGameHandlerEventName = "dailyGameHandler"
 const dailyGameReactionEventName = "dailyGameReaction"
 
-var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Heardle|GuessTheGame|Episode|Flashback)\s+.*#?\d+.*[🟩⬛⬜🟥]`)
+var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Heardle|GuessTheGame|Episode|Flashback)\s+.*#?\d+.*[🟩⬛⬜🟥🟨]`)
 var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#?(Tradle|Wordle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
 
 // dailyGameHandler performs handling of daily game events
@@ -116,6 +116,7 @@ func isGameMessage(message string) bool {
 	return gamePattern.MatchString(message)
 }
 
+// createGameResult converts message data into a DailyGamePlay i.e. parse message into actual results
 func createGameResult(guildId, userId uint64, gameType, message string) (model.DailyGamePlay, error) {
 	result := model.DailyGamePlay{
 		guildId,
@@ -132,7 +133,7 @@ func createGameResult(guildId, userId uint64, gameType, message string) (model.D
 		fallthrough
 	case "Episode":
 		for _, r := range []rune(message) {
-			if r == '🟥' {
+			if r == '🟥' || r == '🟨' {
 				result.Tries += 1
 			} else if r == '🟩' {
 				result.Tries += 1

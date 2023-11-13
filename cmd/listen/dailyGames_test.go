@@ -156,6 +156,22 @@ Play here:
 			},
 			nil,
 		},
+		{
+			"guessTheGame_yellow_square",
+			args{
+				guildId:  601,
+				userId:   602,
+				gameType: "GuessTheGame",
+				message:  "#GuessTheGame #548\n\n🎮 🟥 🟥 🟨 🟩 ⬜ ⬜\n\n#InsightfulGuesser\nhttps://guessthe.game/",
+			},
+			model.DailyGamePlay{
+				GuildId: 601,
+				UserId:  602,
+				Tries:   4,
+				Win:     true,
+			},
+			nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -224,6 +240,16 @@ https://oec.world/en/tradle`,
 
 Play here: 
         https://www.nytimes.com/interactive/2023/10/27/upshot/flashback.html?hide-chrome=1`,
+			true,
+		},
+		{
+			"guessTheGame_yellowSquare",
+			`#GuessTheGame #548
+
+🎮 🟥 🟥 🟨 🟩 ⬜ ⬜
+
+#InsightfulGuesser
+https://guessthe.game/`,
 			true,
 		},
 	}

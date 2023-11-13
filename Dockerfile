@@ -1,9 +1,13 @@
 FROM golang:1.21 AS build
 
 WORKDIR /go/src/app
+
+COPY go.mod go.sum ./
+
+RUN go mod download
+
 COPY . .
 
-RUN go get -d -v ./...
 RUN go build -v -o costanza .
 
 FROM debian:stable-slim

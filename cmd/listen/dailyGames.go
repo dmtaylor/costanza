@@ -21,8 +21,8 @@ import (
 const dailyGameHandlerEventName = "dailyGameHandler"
 const dailyGameReactionEventName = "dailyGameReaction"
 
-var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Heardle|GuessTheGame|Episode|Flashback)\s+.*#?\d+.*[🟩⬛⬜🟥🟨]`)
-var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#?(Tradle|Wordle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
+var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Worldle|Heardle|GuessTheGame|Episode|Flashback)\s+.*#?\d+.*[🟩⬛⬜🟥🟨]`)
+var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#?(Tradle|Wordle|Worldle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
 
 // dailyGameHandler performs handling of daily game events
 func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageCreate) {
@@ -142,6 +142,8 @@ func createGameResult(guildId, userId uint64, gameType, message string) (model.D
 			}
 		}
 	case "Tradle":
+		fallthrough
+	case "Worldle":
 		fallthrough
 	case "Wordle":
 		groups := wordleAndTradleCapturePattern.FindStringSubmatch(message)

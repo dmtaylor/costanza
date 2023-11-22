@@ -172,6 +172,29 @@ Play here:
 			},
 			nil,
 		},
+		{
+			"worldle_loss",
+			args{
+				guildId:  701,
+				userId:   702,
+				gameType: "Worldle",
+				message: `#Worldle #670 X/6 (99%)
+🟩⬛⬛⬛⬛➡️
+🟩🟩🟩🟨⬛↘️
+🟩🟩⬛⬛⬛↖️
+🟩🟩🟨⬛⬛⬅️
+🟩🟩🟩🟩🟨↘️
+🟩🟩🟩🟩🟨⬆️
+https://worldle.teuteuf.fr`,
+			},
+			model.DailyGamePlay{
+				GuildId: 701,
+				UserId:  702,
+				Tries:   6,
+				Win:     false,
+			},
+			nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -250,6 +273,18 @@ Play here:
 
 #InsightfulGuesser
 https://guessthe.game/`,
+			true,
+		},
+		{
+			"worldle",
+			`#Worldle #670 X/6 (99%)
+🟩⬛⬛⬛⬛➡️
+🟩🟩🟩🟨⬛↘️
+🟩🟩⬛⬛⬛↖️
+🟩🟩🟨⬛⬛⬅️
+🟩🟩🟩🟩🟨↘️
+🟩🟩🟩🟩🟨⬆️
+https://worldle.teuteuf.fr`,
 			true,
 		},
 	}

@@ -221,5 +221,6 @@ func (c *cronConfig) removeStats(month string) error {
 	var err *multierror.Error
 	err = multierror.Append(err, c.app.Stats.RemoveMonthActivity(context.Background(), month))
 	err = multierror.Append(err, c.app.Stats.RemoveDailyGameLeadersForMonth(context.Background(), month))
+	err = multierror.Append(err, c.app.Stats.RemoveReactionLogForMonth(context.Background(), month))
 	return err.ErrorOrNil()
 }

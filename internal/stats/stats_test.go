@@ -170,6 +170,17 @@ func TestStats_RemoveMonthActivity(t *testing.T) {
 	assert.Nil(t, db.ExpectationsWereMet(), "unmet mock db expectations")
 }
 
+func TestStats_RemoveReactionLogForMonth(t *testing.T) {
+	month := "2024-01"
+	db, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build mock db")
+	db.ExpectExec("DELETE FROM discord_reaction_stats WHERE report_month").WithArgs(month).WillReturnResult(pgxmock.NewResult("DELETE", 10))
+	s := Stats{pool: db}
+	err = s.RemoveReactionLogForMonth(context.Background(), month)
+	assert.Nil(t, err, "got error when deleting data")
+	assert.Nil(t, db.ExpectationsWereMet(), "unmet mock db expectations")
+}
+
 func TestStats_LogDailyGameActivityUpdate(t *testing.T) {
 	var guildId uint64 = 5555
 	var userId uint64 = 6666

@@ -95,6 +95,14 @@ WHERE id = $1
 	return nil
 }
 
+func (s Stats) RemoveReactionLogForMonth(ctx context.Context, reportMonth string) error {
+	_, err := s.pool.Exec(ctx, "DELETE FROM discord_reaction_stats WHERE report_month = $1", reportMonth)
+	if err != nil {
+		return fmt.Errorf("failed to delete reaction stats: %w", err)
+	}
+	return nil
+}
+
 func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]*model.DiscordUsageStat, error) {
 	var stats []*model.DiscordUsageStat
 	err := pgxscan.Select(ctx, s.pool, &stats, `

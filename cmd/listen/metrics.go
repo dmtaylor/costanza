@@ -30,6 +30,8 @@ const interactionCreateGatewayEvent = "interactionCreate"
 // guildMemberAddGatewayEvent is the gateway event type when a user joins a guild
 const guildMemberAddGatewayEvent = "guildMemberAdd"
 
+const messageReactionAddGatewayEvent = "messageReactionAdd"
+
 // externalDiscordCallName used for external API calls to Discord
 const externalDiscordCallName = "discord"
 
@@ -70,6 +72,16 @@ func (s *Server) guildMemberAddMetricsMiddleware(f func(*discordgo.Session, *dis
 			defer s.m.eventsHandled.With(prometheus.Labels{gatewayEventTypeLabel: "guildMemberAdd"}).Inc()
 		}
 		f(sess, j)
+	}
+}
+
+func (s *Server) messageReactionAddMetricsMiddleware(f func(session *discordgo.Session, add *discordgo.MessageReactionAdd)) func(session *discordgo.Session, add *discordgo.MessageReactionAdd) {
+	return func(sess *discordgo.Session, r *discordgo.MessageReactionAdd) {
+		if s.m.enabled {
+			s.m.eventReceives.With(prometheus.Labels{gatewayEventTypeLabel: messageReactionAddGatewayEvent}).Inc()
+			defer s.m.eventsHandled.With(prometheus.Labels{gatewayEventTypeLabel: messageReactionAddGatewayEvent}).Inc()
+		}
+		f(sess, r)
 	}
 }
 

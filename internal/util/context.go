@@ -7,6 +7,10 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+const MessageEvtType = "message"
+const InteractionEvtType = "interaction"
+const ReactionEvtType = "reaction"
+
 func CheckCtxTimeout(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
@@ -23,6 +27,7 @@ func ContextFromDiscordMessageCreate(parent context.Context, m *discordgo.Messag
 	ctx = context.WithValue(ctx, "messageType", m.Type)
 	ctx = context.WithValue(ctx, "channelId", m.ChannelID)
 	ctx = context.WithValue(ctx, "user", m.Author.ID)
+	ctx = context.WithValue(ctx, "type", MessageEvtType)
 	return ctx
 }
 
@@ -40,6 +45,7 @@ func ContextFromDiscordInteractionCreate(parent context.Context, i *discordgo.In
 	if i.Type == discordgo.InteractionApplicationCommand {
 		ctx = context.WithValue(ctx, "commandName", i.ApplicationCommandData().Name)
 	}
+	ctx = context.WithValue(ctx, "type", InteractionEvtType)
 
 	return ctx, cancel
 }
@@ -47,5 +53,14 @@ func ContextFromDiscordInteractionCreate(parent context.Context, i *discordgo.In
 func ContextFromListenConfig(parent context.Context, guildId, channelId string) context.Context {
 	ctx := context.WithValue(parent, "guildId", guildId)
 	ctx = context.WithValue(ctx, "reportChannelId", channelId)
+	return ctx
+}
+
+func ContextFromDiscordReactionAdd(parent context.Context, r *discordgo.MessageReactionAdd) context.Context {
+	ctx := context.WithValue(parent, "guildId", r.GuildID)
+	ctx = context.WithValue(ctx, "messageId", r.MessageID)
+	ctx = context.WithValue(ctx, "user", r.UserID)
+	ctx = context.WithValue(ctx, "type", ReactionEvtType)
+
 	return ctx
 }

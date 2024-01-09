@@ -29,6 +29,9 @@ func TestContextFromDiscordMessageCreate(t *testing.T) {
 		Type: discordgo.MessageTypeDefault,
 	}}
 	testCtx := ContextFromDiscordMessageCreate(context.Background(), m)
+	if etype, ok := testCtx.Value("type").(string); !ok || etype != MessageEvtType {
+		t.Errorf("expected event type \""+MessageEvtType+"\", got %s", etype)
+	}
 	if guildId, ok := testCtx.Value("guildId").(string); !ok || guildId != "2345678" {
 		t.Errorf("expected guildId context value \"2345678\", got %s", guildId)
 	}
@@ -68,6 +71,9 @@ func TestContextFromDiscordInteractionCreate(t *testing.T) {
 	_, deadlineSet := ctx.Deadline()
 	if !deadlineSet {
 		t.Errorf("no deadline set in context: %v", ctx)
+	}
+	if etype, ok := ctx.Value("type").(string); !ok || etype != InteractionEvtType {
+		t.Errorf("expected event type \""+InteractionEvtType+"\", got %s", etype)
 	}
 	if id, ok := ctx.Value("interactionId").(string); !ok || id != "42" {
 		t.Errorf("expected interaction id \"42\", got %v", id)
@@ -128,4 +134,38 @@ func TestContextFromListenConfig(t *testing.T) {
 	ctx := ContextFromListenConfig(parent, guildId, channelId)
 	assert.Equal(t, guildId, ctx.Value("guildId"), "mismatched guild id")
 	assert.Equal(t, channelId, ctx.Value("reportChannelId"))
+}
+
+func TestContextFromDiscordReactionAdd(t *testing.T) {
+	r := &discordgo.MessageReactionAdd{
+		MessageReaction: &discordgo.MessageReaction{
+			UserID:    "543210",
+			MessageID: "8675309",
+			Emoji: discordgo.Emoji{
+				ID:            "97874",
+				Name:          "test_emoji",
+				Roles:         nil,
+				User:          nil,
+				RequireColons: false,
+				Managed:       false,
+				Animated:      false,
+				Available:     false,
+			},
+			ChannelID: "796033412",
+			GuildID:   "9876543",
+		},
+	}
+	testCtx := ContextFromDiscordReactionAdd(context.Background(), r)
+	if etype, ok := testCtx.Value("type").(string); !ok || etype != ReactionEvtType {
+		t.Errorf("expected event type \""+ReactionEvtType+"\", got %s", etype)
+	}
+	if guildId, ok := testCtx.Value("guildId").(string); !ok || guildId != "9876543" {
+		t.Errorf("expected guildId context value \"9876543\" got %s", guildId)
+	}
+	if messageId, ok := testCtx.Value("messageId").(string); !ok || messageId != "8675309" {
+		t.Errorf("expected guildId context value \"8675309\" got %s", messageId)
+	}
+	if userId, ok := testCtx.Value("user").(string); !ok || userId != "543210" {
+		t.Errorf("expected guildId context value \"543210\" got %s", userId)
+	}
 }

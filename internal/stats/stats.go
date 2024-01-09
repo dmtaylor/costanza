@@ -60,6 +60,41 @@ WHERE id = $1
 	return nil
 }
 
+func (s Stats) LogReaction(ctx context.Context, guildId, userId uint64, reportMonth string) error {
+
+	var existingLogId uint
+	err := s.pool.QueryRow(ctx, `
+SELECT id
+FROM discord_reaction_stats
+WHERE guild_id = $1 AND user_id = $2 AND report_month = $3
+`, guildId, userId, reportMonth).Scan(&existingLogId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			_, err = s.pool.Exec(ctx, "INSERT INTO discord_reaction_stats(guild_id, user_id, report_month) VALUES ($1, $2, $3)",
+				guildId,
+				userId,
+				reportMonth,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to insert new reaction record: %w", err)
+			}
+			return nil
+		} else {
+			return fmt.Errorf("failed to get existing reaction stat: %w", err)
+		}
+	}
+	_, err = s.pool.Exec(ctx, `
+UPDATE discord_reaction_stats
+SET message_count = message_count + 1
+WHERE id = $1
+`, existingLogId)
+	if err != nil {
+		return fmt.Errorf("failed to increment reaction stat: %w", err)
+	}
+
+	return nil
+}
+
 func (s Stats) GetLeaders(ctx context.Context, guildId uint64, reportMonth string) ([]*model.DiscordUsageStat, error) {
 	var stats []*model.DiscordUsageStat
 	err := pgxscan.Select(ctx, s.pool, &stats, `

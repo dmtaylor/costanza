@@ -241,6 +241,48 @@ INSERT INTO daily_game_win_stats\(guild_id, user_id, report_month, play_count, g
 	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet db expectations")
 }
 
+func TestStats_LogReactionNew(t *testing.T) {
+	var guildId uint64 = 1234
+	var userId uint64 = 5678
+	reportMonth := "2024-01"
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build mock")
+	defer mockDb.Close()
+	mockDb.ExpectQuery(`
+SELECT id
+FROM discord_reaction_stats
+WHERE guild_id`).WithArgs(guildId, userId, reportMonth).WillReturnError(pgx.ErrNoRows)
+	mockDb.ExpectExec(`INSERT INTO discord_reaction_stats\(guild_id, user_id, report_month\) VALUES `).
+		WithArgs(guildId, userId, reportMonth).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	stats := New(mockDb)
+	err = stats.LogReaction(context.Background(), guildId, userId, reportMonth)
+	assert.Nil(t, err, "got err when adding stat")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet db expectations")
+}
+
+func TestStats_LogReactionUpdate(t *testing.T) {
+	var guildId uint64 = 4321
+	var userId uint64 = 8765
+	reportMonth := "2023-01"
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build mock")
+	mockRowId := uint(9921)
+	rows := mockDb.NewRows([]string{"id"}).AddRow(mockRowId)
+	mockDb.ExpectQuery(`
+SELECT id
+FROM discord_reaction_stats
+WHERE guild_id`).WithArgs(guildId, userId, reportMonth).WillReturnRows(rows)
+	mockDb.ExpectExec(`
+UPDATE discord_reaction_stats
+SET message_count = message_count \+ 1
+WHERE id =`).WithArgs(mockRowId).WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	stats := New(mockDb)
+	err = stats.LogReaction(context.Background(), guildId, userId, reportMonth)
+	assert.Nil(t, err, "got err when adding stat")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet db expectations")
+}
+
 func TestStats_GetDailyGameLeadersSuccess(t *testing.T) {
 	var guildId uint64 = 8888
 	reportMonth := "2023-10"

@@ -29,15 +29,18 @@ func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMembe
 	ctx := context.WithValue(context.Background(), "memberId", j.User.ID)
 	ctx = context.WithValue(ctx, "guildId", j.GuildID)
 
+	var err error
+	defer func() {
+		if err != nil && s.m.enabled {
+			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName, isTimeoutLabel: "false"}).Inc()
+		}
+	}()
 	callStart := time.Now()
 	channels, err := sess.GuildChannels(j.GuildID)
 	if s.m.enabled {
 		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: welcomeEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
 	}
 	if err != nil {
-		if s.m.enabled {
-			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName, isTimeoutLabel: "false"}).Inc()
-		}
 		slog.ErrorContext(ctx, "error getting channel list: "+err.Error())
 		return
 	}
@@ -53,15 +56,12 @@ func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMembe
 				s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: welcomeEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
 			}
 			if err != nil {
-				if s.m.enabled {
-					s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: "welcome", isTimeoutLabel: "false"}).Inc()
-				}
 				slog.ErrorContext(ctx, "failed to send message: "+err.Error(), "channel", channel.ID)
 			}
 			break
 		}
 	}
 	if s.m.enabled {
-		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: "welcome"}).Inc()
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName}).Inc()
 	}
 }

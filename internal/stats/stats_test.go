@@ -361,3 +361,52 @@ func TestStats_RemoveDailyGameLeadersForMonth(t *testing.T) {
 	assert.Nil(t, err, "got error when deleting stats")
 	assert.Nil(t, db.ExpectationsWereMet(), "unmet mock db expectations")
 }
+
+func TestStats_GetReactionLeadersForMonthSuccess(t *testing.T) {
+	var guildId uint64 = 1000
+	reportMonth := "2024-01"
+	expectedResults := []*model.DiscordReactionScore{
+		{
+			GuildId:     guildId,
+			UserId:      1010,
+			ReportMonth: reportMonth,
+			Score:       20,
+		},
+		{
+			GuildId:     guildId,
+			UserId:      1011,
+			ReportMonth: reportMonth,
+			Score:       5,
+		},
+		{
+			GuildId:     guildId,
+			UserId:      1012,
+			ReportMonth: reportMonth,
+			Score:       0,
+		},
+		{
+			GuildId:     guildId,
+			UserId:      1013,
+			ReportMonth: reportMonth,
+			Score:       -3,
+		},
+	}
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	rows := mockDb.NewRows([]string{"guild_id", "user_id", "report_month", "score"}).
+		AddRow(uint64(1000), uint64(1010), "2024-01", 20).
+		AddRow(uint64(1000), uint64(1011), "2024-01", 5).
+		AddRow(uint64(1000), uint64(1012), "2024-01", 0).
+		AddRow(uint64(1000), uint64(1013), "2024-01", -3)
+	mockDb.ExpectQuery(`SELECT drs\.guild_id, drs.user_id, drs.report_month, drs.message_count - COALESCE\(dus\.message_count, 0\) AS score
+FROM discord_reaction_stats drs LEFT OUTER JOIN discord_usage_stats dus USING \(guild_id, user_id, report_month\)
+WHERE drs\.guild_id = \$1 AND drs\.report_month = \$2
+ORDER BY score DESC
+LIMIT 5`).
+		WithArgs(guildId, reportMonth).WillReturnRows(rows)
+	stats := New(mockDb)
+	got, err := stats.GetReactionLeadersForMonth(context.Background(), guildId, reportMonth)
+	require.Nil(t, err, "getting reaction leaders failed")
+	assert.Equal(t, expectedResults, got, "results don't match")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+}

@@ -95,6 +95,21 @@ WHERE id = $1
 	return nil
 }
 
+func (s Stats) GetReactionLeadersForMonth(ctx context.Context, guildId uint64, reportMonth string) ([]*model.DiscordReactionScore, error) {
+	var scores []*model.DiscordReactionScore
+	err := pgxscan.Select(ctx, s.pool, &scores, `
+SELECT drs.guild_id, drs.user_id, drs.report_month, drs.message_count - COALESCE(dus.message_count, 0) AS score
+FROM discord_reaction_stats drs LEFT OUTER JOIN discord_usage_stats dus USING (guild_id, user_id, report_month)
+WHERE drs.guild_id = $1 AND drs.report_month = $2
+ORDER BY score DESC
+LIMIT 5`, guildId, reportMonth)
+	if err != nil {
+		return nil, fmt.Errorf("reaction leader query failed: %w", err)
+	}
+
+	return scores, nil
+}
+
 func (s Stats) RemoveReactionLogForMonth(ctx context.Context, reportMonth string) error {
 	_, err := s.pool.Exec(ctx, "DELETE FROM discord_reaction_stats WHERE report_month = $1", reportMonth)
 	if err != nil {

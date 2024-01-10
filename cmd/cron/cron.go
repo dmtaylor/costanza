@@ -106,14 +106,16 @@ func runCron(_ *cobra.Command, _ []string) error {
 			var err *multierror.Error
 			err = multierror.Append(err, c.reportMessageStats(ctx, lconfig, month))
 			err = multierror.Append(err, c.reportDailyGameWins(ctx, lconfig, month))
+			err = multierror.Append(err, c.reportReactionScores(ctx, lconfig, month))
 			if err.Len() > 0 {
 				if c.m.enabled {
-					c.m.failedReports.With(promLabels).Inc()
+					c.m.failedReports.With(promLabels).Add(float64(err.Len()))
 				}
 				slog.ErrorContext(ctx, "report(s) failed: "+err.Error())
-			} else {
+			}
+			if err.Len() < 3 {
 				if c.m.enabled {
-					c.m.successfulReports.With(promLabels).Inc()
+					c.m.successfulReports.With(promLabels).Add(float64(3 - err.Len()))
 				}
 			}
 		}, lconfig)
@@ -207,6 +209,36 @@ func (c *cronConfig) reportDailyGameWins(ctx context.Context, listenConfig confi
 			return fmt.Errorf("unable to get user: %w", err)
 		}
 		line := fmt.Sprintf("#%d: %s with %s\n", i+1, user.Mention(), dailyGameWins.FormatWins())
+		builder.WriteString(line)
+	}
+
+	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, builder.String())
+	if err != nil {
+		return fmt.Errorf("failed to send message: %w", err)
+	}
+	return nil
+}
+
+func (c *cronConfig) reportReactionScores(ctx context.Context, listenConfig config.ListenConfig, month string) error {
+	guildId, err := strconv.ParseUint(listenConfig.GuildId, 10, 64)
+	if err != nil {
+		return fmt.Errorf("unable to parse guild id %s: %w", listenConfig.GuildId, err)
+	}
+	topReactionScores, err := c.app.Stats.GetReactionLeadersForMonth(ctx, guildId, month)
+	if err != nil {
+		return fmt.Errorf("failed to get response rankings: %w", err)
+	}
+	if len(topReactionScores) < 1 {
+		return nil
+	}
+	builder := strings.Builder{}
+	builder.WriteString("Top reaction scores are:\n")
+	for i, reactionScore := range topReactionScores {
+		user, err := c.sess.User(strconv.FormatUint(reactionScore.UserId, 10))
+		if err != nil {
+			return fmt.Errorf("unable to get user: %w", err)
+		}
+		line := fmt.Sprintf("#%d: %s\n", i+1, reactionScore.FormatResult(user.Mention()))
 		builder.WriteString(line)
 	}
 

@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -22,6 +21,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/stats"
 	"github.com/dmtaylor/costanza/internal/util"
 )
 
@@ -161,24 +161,11 @@ func (c *cronConfig) reportMessageStats(ctx context.Context, listenConfig config
 	if len(topUsers) < 1 {
 		return nil
 	}
-	builder := strings.Builder{}
-
-	_, err = builder.WriteString("Top posters for the month are:\n")
+	message := stats.BuildMessageReport(topUsers)
 	if err != nil {
-		return fmt.Errorf("failed to build string: %w", err)
+		return fmt.Errorf("failed to format leaders: %w", err)
 	}
-	for i, userStat := range topUsers {
-		user, err := c.sess.User(strconv.FormatUint(userStat.UserId, 10))
-		if err != nil {
-			return fmt.Errorf("unable to get user: %w", err)
-		}
-		line := fmt.Sprintf("#%d: %s with %d messages\n", i+1, user.Mention(), userStat.MessageCount)
-		_, err = builder.WriteString(line)
-		if err != nil {
-			return fmt.Errorf("failed to write line: %w", err)
-		}
-	}
-	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, builder.String())
+	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
 	}
@@ -197,22 +184,11 @@ func (c *cronConfig) reportDailyGameWins(ctx context.Context, listenConfig confi
 	if len(topWinners) < 1 {
 		return nil
 	}
-	builder := strings.Builder{}
-
-	_, err = builder.WriteString("Top posters for the month are:\n")
+	message := stats.BuildGameWinReport(topWinners)
 	if err != nil {
-		return fmt.Errorf("failed to build string: %w", err)
+		return fmt.Errorf("failed to build game win message: %w", err)
 	}
-	for i, dailyGameWins := range topWinners {
-		user, err := c.sess.User(strconv.FormatUint(dailyGameWins.UserId, 10))
-		if err != nil {
-			return fmt.Errorf("unable to get user: %w", err)
-		}
-		line := fmt.Sprintf("#%d: %s with %s\n", i+1, user.Mention(), dailyGameWins.FormatWins())
-		builder.WriteString(line)
-	}
-
-	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, builder.String())
+	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
 	}
@@ -231,18 +207,11 @@ func (c *cronConfig) reportReactionScores(ctx context.Context, listenConfig conf
 	if len(topReactionScores) < 1 {
 		return nil
 	}
-	builder := strings.Builder{}
-	builder.WriteString("Top reaction scores are:\n")
-	for i, reactionScore := range topReactionScores {
-		user, err := c.sess.User(strconv.FormatUint(reactionScore.UserId, 10))
-		if err != nil {
-			return fmt.Errorf("unable to get user: %w", err)
-		}
-		line := fmt.Sprintf("#%d: %s\n", i+1, reactionScore.FormatResult(user.Mention()))
-		builder.WriteString(line)
+	message := stats.BuildReactionScoreReport(topReactionScores)
+	if err != nil {
+		return fmt.Errorf("failed to build reaction score message: %w", err)
 	}
-
-	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, builder.String())
+	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
 	}

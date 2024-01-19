@@ -45,6 +45,10 @@ type metrics struct {
 	externalApiDuration *prometheus.HistogramVec // Total duration of external API calls in seconds
 }
 
+// TODO - long term: move all prometheus logging into these middleware
+// Update handler funcs to return error, and update middleware to take in required values & function. Do error check in
+// middleware & log failures. Figure out how to populate context
+
 func (s *Server) messageCreateMetricsMiddleware(f func(*discordgo.Session, *discordgo.MessageCreate)) func(*discordgo.Session, *discordgo.MessageCreate) {
 	return func(sess *discordgo.Session, m *discordgo.MessageCreate) {
 		if s.m.enabled {

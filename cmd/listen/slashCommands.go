@@ -16,5 +16,6 @@ var Commands = []*discordgo.ApplicationCommand{
 	shadowrunRollSlashCommand,
 	worldOfDarknessCommand,
 	darkHeresyTestSlashCommand,
+	leaderboardSlashCommand,
 	// testQuoteCommand, // Uncomment this to add test quote command
 }

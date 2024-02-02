@@ -47,3 +47,16 @@ func BuildReactionScoreReport(topReactionScores []*model.DiscordReactionScore) s
 
 	return builder.String()
 }
+
+// BuildCursedChannelPostReport creates the message for contained users
+func BuildCursedChannelPostReport(cursedChannelPosters []*model.CursedChannelPost) string {
+	builder := strings.Builder{}
+	builder.WriteString("Most contained users are:\n")
+	for i, ccp := range cursedChannelPosters {
+		user := discordgo.User{ID: strconv.FormatUint(ccp.UserId, 10)}
+		line := fmt.Sprintf("#%d: %s with %d posts\n", i+1, user.Mention(), ccp.MessageCount)
+		builder.WriteString(line)
+	}
+
+	return builder.String()
+}

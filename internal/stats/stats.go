@@ -213,3 +213,59 @@ func (s Stats) RemoveDailyGameLeadersForMonth(ctx context.Context, reportMonth s
 	}
 	return nil
 }
+
+func (s Stats) LogCursedChannelPost(ctx context.Context, guildId, userId uint64, reportMonth string) error {
+	var existingLogId uint
+	err := s.pool.QueryRow(ctx,
+		"SELECT id FROM discord_cursed_channel_stats WHERE guild_id = $1 AND user_id = $2 AND report_month = $3",
+		guildId,
+		userId,
+		reportMonth).Scan(&existingLogId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			_, err = s.pool.Exec(ctx,
+				"INSERT INTO discord_cursed_channel_stats(guild_id, user_id, report_month) VALUES ($1, $2, $3)",
+				guildId,
+				userId,
+				reportMonth,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to insert new cursed channel post record: %w", err)
+			}
+			return nil
+		} else {
+			return fmt.Errorf("failed to get existing cursed channel post record: %w", err)
+		}
+	}
+	_, err = s.pool.Exec(ctx,
+		"UPDATE discord_cursed_channel_stats SET message_count = message_count + 1 WHERE id = $1",
+		existingLogId)
+	if err != nil {
+		return fmt.Errorf("failed to increment cursed channel post record: %w", err)
+	}
+	return nil
+}
+
+func (s Stats) RemoveCursedChannelPostStatsForMonth(ctx context.Context, reportMonth string) error {
+	_, err := s.pool.Exec(ctx, "DELETE FROM discord_cursed_channel_stats WHERE report_month = $1", reportMonth)
+	if err != nil {
+		return fmt.Errorf("failed to delete cursed channel post stats: %w", err)
+	}
+	return nil
+}
+
+func (s Stats) GetTopCursedChannelPosters(ctx context.Context, guildId uint64, reportMonth string) ([]*model.CursedChannelPost, error) {
+	var results []*model.CursedChannelPost
+	err := pgxscan.Select(
+		ctx,
+		s.pool,
+		&results,
+		"SELECT * FROM discord_cursed_channel_stats WHERE guild_id = $1 AND report_month = $2 ORDER BY message_count DESC LIMIT 5",
+		guildId,
+		reportMonth,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cursed channel post leaders: %w", err)
+	}
+	return results, nil
+}

@@ -171,3 +171,55 @@ func TestBuildReactionScoreReport(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildCursedChannelPostReport(t *testing.T) {
+	tests := []struct {
+		name    string
+		posters []*model.CursedChannelPost
+		want    string
+	}{
+		{
+			"basic",
+			[]*model.CursedChannelPost{
+				{
+					5,
+					9090,
+					3333,
+					"2024-01",
+					90,
+				},
+				{
+					2,
+					9090,
+					3334,
+					"2024-01",
+					75,
+				},
+				{
+					10,
+					9090,
+					3335,
+					"2024-01",
+					50,
+				},
+				{
+					87,
+					9090,
+					3336,
+					"2024-01",
+					10,
+				},
+			},
+			"Most contained users are:\n" +
+				"#1: <@3333> with 90 posts\n" +
+				"#2: <@3334> with 75 posts\n" +
+				"#3: <@3335> with 50 posts\n" +
+				"#4: <@3336> with 10 posts\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, BuildCursedChannelPostReport(tt.posters), "BuildCursedChannelPostReport(%v)", tt.posters)
+		})
+	}
+}

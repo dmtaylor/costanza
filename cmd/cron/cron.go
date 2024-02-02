@@ -107,16 +107,17 @@ func runCron(_ *cobra.Command, _ []string) error {
 			err = multierror.Append(err, c.reportMessageStats(ctx, lconfig, month))
 			err = multierror.Append(err, c.reportDailyGameWins(ctx, lconfig, month))
 			err = multierror.Append(err, c.reportReactionScores(ctx, lconfig, month))
-			if err.Len() > 0 {
+			err = multierror.Append(err, c.reportContainedUsers(ctx, lconfig, month))
+			errCount := 0
+			if err != nil {
+				errCount = err.Len()
 				if c.m.enabled {
 					c.m.failedReports.With(promLabels).Add(float64(err.Len()))
 				}
 				slog.ErrorContext(ctx, "report(s) failed: "+err.Error())
 			}
-			if err.Len() < 3 {
-				if c.m.enabled {
-					c.m.successfulReports.With(promLabels).Add(float64(3 - err.Len()))
-				}
+			if c.m.enabled {
+				c.m.successfulReports.With(promLabels).Add(float64(4 - errCount))
 			}
 		}, lconfig)
 		if err != nil {
@@ -218,10 +219,36 @@ func (c *cronConfig) reportReactionScores(ctx context.Context, listenConfig conf
 	return nil
 }
 
+func (c *cronConfig) reportContainedUsers(ctx context.Context, listenConfig config.ListenConfig, month string) error {
+	guildId, err := strconv.ParseUint(listenConfig.GuildId, 10, 64)
+	if err != nil {
+		return fmt.Errorf("unable to parse guild id %s: %w", listenConfig.GuildId, err)
+	}
+	containedUsers, err := c.app.Stats.GetTopCursedChannelPosters(ctx, guildId, month)
+	if err != nil {
+		return fmt.Errorf("failed to get contained user rankings: %w", err)
+	}
+	if len(containedUsers) < 1 {
+		return nil
+	}
+	message := stats.BuildCursedChannelPostReport(containedUsers)
+	if err != nil {
+		return fmt.Errorf("failed to build contained user message: %w", err)
+	}
+	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
+	if err != nil {
+		return fmt.Errorf("failed to send message: %w", err)
+	}
+
+	return nil
+}
+
 func (c *cronConfig) removeStats(month string) error {
 	var err *multierror.Error
-	err = multierror.Append(err, c.app.Stats.RemoveMonthActivity(context.Background(), month))
-	err = multierror.Append(err, c.app.Stats.RemoveDailyGameLeadersForMonth(context.Background(), month))
-	err = multierror.Append(err, c.app.Stats.RemoveReactionLogForMonth(context.Background(), month))
+	ctx := context.Background()
+	err = multierror.Append(err, c.app.Stats.RemoveMonthActivity(ctx, month))
+	err = multierror.Append(err, c.app.Stats.RemoveDailyGameLeadersForMonth(ctx, month))
+	err = multierror.Append(err, c.app.Stats.RemoveReactionLogForMonth(ctx, month))
+	err = multierror.Append(err, c.app.Stats.RemoveCursedChannelPostStatsForMonth(ctx, month))
 	return err.ErrorOrNil()
 }

@@ -23,7 +23,7 @@ const logReactionMetricEventName = "logReaction"
 
 const leaderboardCommandName = "leaderboard"
 
-const reportCount = 3 // update this count for number of reports pulled
+const reportCount = 4 // update this count for number of reports pulled
 
 var leaderboardSlashCommand = &discordgo.ApplicationCommand{
 	Name:        leaderboardCommandName,
@@ -220,6 +220,21 @@ func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.Inter
 			return
 		}
 		msg := stats.BuildReactionScoreReport(scores)
+		_, ierr = sess.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+			Content: msg,
+		})
+		if ierr != nil {
+			errs <- ierr
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		containedUsers, ierr := s.app.Stats.GetTopCursedChannelPosters(ctx, guildId, time.Now().Format("2006-01"))
+		if ierr != nil {
+			errs <- ierr
+			return
+		}
+		msg := stats.BuildCursedChannelPostReport(containedUsers)
 		_, ierr = sess.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
 			Content: msg,
 		})

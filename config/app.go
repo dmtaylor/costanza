@@ -3,11 +3,14 @@ package config
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/dmtaylor/costanza/internal/cache"
 	"github.com/dmtaylor/costanza/internal/model"
 	"github.com/dmtaylor/costanza/internal/parser"
 	"github.com/dmtaylor/costanza/internal/quotes"
@@ -20,11 +23,12 @@ const VersionString = "v1.5.2"
 
 // App represents the current app components & state
 type App struct {
-	Quotes          quotes.QuoteEngine
-	DNotationParser *parser.DNotationParser
-	ThresholdRoller *roller.ThresholdRoller
-	ConnPool        model.DbPool
-	Stats           *stats.Stats
+	Quotes             quotes.QuoteEngine
+	DNotationParser    *parser.DNotationParser
+	ThresholdRoller    *roller.ThresholdRoller
+	ConnPool           model.DbPool
+	Stats              *stats.Stats
+	CursedChannelCache cache.ChannelCache
 }
 
 var loader sync.Once
@@ -61,16 +65,42 @@ func LoadApp() (*App, error) {
 			err = fmt.Errorf("failed to build parser: %w", err)
 			return
 		}
+		cursedChannelCache, err := preloadChannelCache(pool)
+		if err != nil {
+			err = fmt.Errorf("failed to create channel cache: %w", err)
+			return
+		}
 		app = App{
-			Quotes:          qEngine,
-			DNotationParser: dNotationParser,
-			ThresholdRoller: roller.NewThresholdRoller(),
-			ConnPool:        pool,
-			Stats:           &statsSvc,
+			Quotes:             qEngine,
+			DNotationParser:    dNotationParser,
+			ThresholdRoller:    roller.NewThresholdRoller(),
+			ConnPool:           pool,
+			Stats:              &statsSvc,
+			CursedChannelCache: cursedChannelCache,
 		}
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &app, nil
+}
+
+func preloadChannelCache(pool *pgxpool.Pool) (*cache.DbChannelCache, error) {
+	ctx := context.WithValue(context.Background(), "setup", "channelCache")
+	c := cache.NewDbChannelCache(pool)
+	guilds := make([]uint64, len(GlobalConfig.Discord.ListenConfigs))
+	var err *multierror.Error
+	for i, guildCfg := range GlobalConfig.Discord.ListenConfigs {
+		gid, e := strconv.ParseUint(guildCfg.GuildId, 10, 64)
+		if e != nil {
+			err = multierror.Append(err, e)
+			continue
+		}
+		guilds[i] = gid
+	}
+	if err != nil {
+		return nil, err.ErrorOrNil()
+	}
+	e := c.PreloadCache(ctx, guilds)
+	return c, e
 }

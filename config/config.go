@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/spf13/viper"
 )
@@ -23,13 +24,13 @@ type ListenConfig struct {
 type DiscordConfig struct {
 	AppId                   string         `mapstructure:"app_id"`
 	Token                   string         `mapstructure:"token"`
-	ShardId                 int            `mapstructure:"shard_id"`
-	ShardCount              int            `mapstructure:"shard_count"`
+	ShardId                 uint64         `mapstructure:"shard_id"`
+	ShardCount              uint64         `mapstructure:"shard_count"`
 	InsomniacIds            []string       `mapstructure:"insomniac_ids"`
 	InsomniacRoles          []string       `mapstructure:"insomniac_roles"`
 	ListenConfigs           []ListenConfig `mapstructure:"listen_configs"`
 	DefaultWeatherLocations []string       `mapstructure:"default_weather_locations"`
-	ListenChannelSet        map[string]bool
+	ListenChannelSet        map[string]*ListenConfig
 }
 
 type MetricsConfig struct {
@@ -88,9 +89,12 @@ func LoadConfig() error {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 	initializeLogger()
-	GlobalConfig.Discord.ListenChannelSet = make(map[string]bool, len(GlobalConfig.Discord.ListenConfigs))
+	GlobalConfig.Discord.ListenChannelSet = make(map[string]*ListenConfig, len(GlobalConfig.Discord.ListenConfigs))
 	for _, listenConfig := range GlobalConfig.Discord.ListenConfigs {
-		GlobalConfig.Discord.ListenChannelSet[listenConfig.GuildId] = true
+		gid, _ := strconv.ParseUint(listenConfig.GuildId, 10, 64)
+		if gid%GlobalConfig.Discord.ShardCount == GlobalConfig.Discord.ShardId {
+			GlobalConfig.Discord.ListenChannelSet[listenConfig.GuildId] = &listenConfig
+		}
 	}
 
 	return nil

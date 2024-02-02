@@ -84,7 +84,7 @@ func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageC
 		}
 
 		wg.Wait()
-		if handleError.Len() > 0 {
+		if handleError != nil {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
 			}

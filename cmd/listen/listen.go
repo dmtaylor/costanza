@@ -107,8 +107,8 @@ func runListen(_ *cobra.Command, _ []string) error {
 
 	// Set shard info in discord ws connection
 	if config.GlobalConfig.Discord.ShardCount > 1 {
-		dg.ShardID = config.GlobalConfig.Discord.ShardId
-		dg.ShardCount = config.GlobalConfig.Discord.ShardCount
+		dg.ShardID = int(config.GlobalConfig.Discord.ShardId)
+		dg.ShardCount = int(config.GlobalConfig.Discord.ShardCount)
 	}
 
 	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
@@ -143,6 +143,7 @@ func runListen(_ *cobra.Command, _ []string) error {
 	dg.AddHandler(server.guildMemberAddMetricsMiddleware(server.welcomeMessage))
 	dg.AddHandler(server.messageReactionAddMetricsMiddleware(server.logReactionActivity))
 	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.getLeaderboardStats))
+	dg.AddHandler(server.messageCreateMetricsMiddleware(server.logCursedChannelStat))
 	//dg.AddHandler(server.interactionCreateMetricsMiddleware(server.quoteTestCommand)) // Uncomment this to add test quote command handler
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentsGuildMembers | discordgo.IntentsGuildMessageReactions
 

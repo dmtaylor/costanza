@@ -2,6 +2,7 @@ package stats
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -278,6 +279,7 @@ func TestStats_LogReactionUpdate(t *testing.T) {
 	reportMonth := "2023-01"
 	mockDb, err := pgxmock.NewPool()
 	require.Nil(t, err, "failed to build mock")
+	defer mockDb.Close()
 	mockRowId := uint(9921)
 	rows := mockDb.NewRows([]string{"id"}).AddRow(mockRowId)
 	mockDb.ExpectQuery(`
@@ -334,6 +336,7 @@ func TestStats_GetDailyGameLeadersSuccess(t *testing.T) {
 	}
 	mockDb, err := pgxmock.NewPool()
 	require.Nil(t, err, "failed to build mock pool")
+	defer mockDb.Close()
 	rows := mockDb.NewRows([]string{"id", "guild_id", "user_id", "report_month", "play_count", "guess_count", "win_count", "current_streak", "max_streak"}).
 		AddRow(uint(192), guildId, uint64(9888), reportMonth, 31, 35, 28, 5, 11).
 		AddRow(uint(870), guildId, uint64(664), reportMonth, 28, 38, 27, 10, 10).
@@ -355,6 +358,7 @@ func TestStats_RemoveDailyGameLeadersForMonth(t *testing.T) {
 
 	db, err := pgxmock.NewPool()
 	require.Nil(t, err, "failed to build mock db")
+	defer db.Close()
 	db.ExpectExec(`DELETE FROM daily_game_win_stats WHERE report_month`).WithArgs(month).WillReturnResult(pgxmock.NewResult("DELETE", 5))
 	s := Stats{db}
 	err = s.RemoveDailyGameLeadersForMonth(context.Background(), month)
@@ -393,6 +397,7 @@ func TestStats_GetReactionLeadersForMonthSuccess(t *testing.T) {
 	}
 	mockDb, err := pgxmock.NewPool()
 	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
 	rows := mockDb.NewRows([]string{"guild_id", "user_id", "report_month", "score"}).
 		AddRow(uint64(1000), uint64(1010), "2024-01", 20).
 		AddRow(uint64(1000), uint64(1011), "2024-01", 5).
@@ -410,3 +415,161 @@ LIMIT 5`).
 	assert.Equal(t, expectedResults, got, "results don't match")
 	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
 }
+
+func TestStats_LogCursedChannelPostNew(t *testing.T) {
+	var guildId uint64 = 1111
+	var userId uint64 = 99999
+	reportMonth := "2024-01"
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
+	mockDb.ExpectQuery(`SELECT id FROM discord_cursed_channel_stats WHERE guild_id = \$1 AND user_id = \$2 AND report_month = \$3`).
+		WithArgs(guildId, userId, reportMonth).
+		WillReturnError(pgx.ErrNoRows)
+	mockDb.ExpectExec(`INSERT INTO discord_cursed_channel_stats\(guild_id, user_id, report_month\) VALUES \(\$1, \$2, \$3\)`).
+		WithArgs(guildId, userId, reportMonth).
+		WillReturnResult(pgxmock.NewResult("INSERT", 1))
+	stats := New(mockDb)
+	err = stats.LogCursedChannelPost(context.Background(), guildId, userId, reportMonth)
+	assert.Nil(t, err, "failed creating new log")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+}
+func TestStats_LogCursedChannelPostUpdate(t *testing.T) {
+	var guildId uint64 = 1111
+	var userId uint64 = 99999
+	reportMonth := "2024-01"
+	var rowId uint = 9
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
+	rows := mockDb.NewRows([]string{"id"}).AddRow(rowId)
+	mockDb.ExpectQuery(`SELECT id FROM discord_cursed_channel_stats WHERE guild_id = \$1 AND user_id = \$2 AND report_month = \$3`).
+		WithArgs(guildId, userId, reportMonth).
+		WillReturnRows(rows)
+	mockDb.ExpectExec(`UPDATE discord_cursed_channel_stats SET message_count = message_count \+ 1 WHERE id = \$1`).
+		WithArgs(rowId).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	stats := New(mockDb)
+	err = stats.LogCursedChannelPost(context.Background(), guildId, userId, reportMonth)
+	assert.Nil(t, err, "failed creating new log")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+}
+
+func TestStats_LogCursedChannelPostErrorGet(t *testing.T) {
+	var guildId uint64 = 1111
+	var userId uint64 = 99999
+	reportMonth := "2024-01"
+	expectedError := errors.New("underlying query error")
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
+	mockDb.ExpectQuery(`SELECT id FROM discord_cursed_channel_stats WHERE guild_id = \$1 AND user_id = \$2 AND report_month = \$3`).
+		WithArgs(guildId, userId, reportMonth).
+		WillReturnError(expectedError)
+	stats := New(mockDb)
+	err = stats.LogCursedChannelPost(context.Background(), guildId, userId, reportMonth)
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+	if assert.Error(t, err, "missing error") {
+		assert.ErrorIs(t, err, expectedError, "error not wrapped")
+		assert.EqualError(t, err, "failed to get existing cursed channel post record: underlying query error")
+	}
+}
+
+func TestStats_RemoveCursedChannelPostStatsForMonth(t *testing.T) {
+	reportMonth := "2024-01"
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
+	mockDb.ExpectExec(`DELETE FROM discord_cursed_channel_stats WHERE report_month = \$1`).
+		WithArgs(reportMonth).
+		WillReturnResult(pgxmock.NewResult("DELETE", 5))
+	stats := New(mockDb)
+	err = stats.RemoveCursedChannelPostStatsForMonth(context.Background(), reportMonth)
+	assert.Nil(t, err, "got error")
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+}
+
+func TestStats_RemoveCursedChannelPostStatsForMonthError(t *testing.T) {
+	reportMonth := "2024-01"
+	expectedErr := errors.New("underlying query error")
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
+	mockDb.ExpectExec(`DELETE FROM discord_cursed_channel_stats WHERE report_month = \$1`).
+		WithArgs(reportMonth).
+		WillReturnError(expectedErr)
+	stats := New(mockDb)
+	err = stats.RemoveCursedChannelPostStatsForMonth(context.Background(), reportMonth)
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+	if assert.Error(t, err, "missing error") {
+		assert.ErrorIs(t, err, expectedErr, "error not wrapped")
+		assert.EqualError(t, err, "failed to delete cursed channel post stats: underlying query error", "error mismatch")
+	}
+}
+
+func TestStats_GetTopCursedChannelPosters(t *testing.T) {
+	var guildId uint64 = 7777
+	reportMonth := "2024-01"
+	expectedResults := []*model.CursedChannelPost{
+		{
+			5,
+			7777,
+			6666,
+			"2024-01",
+			235,
+		},
+		{
+			9,
+			7777,
+			6665,
+			"2024-01",
+			175,
+		},
+		{
+			2,
+			7777,
+			6664,
+			"2024-01",
+			100,
+		},
+	}
+	rows := pgxmock.NewRows([]string{"id", "guild_id", "user_id", "report_month", "message_count"}).
+		AddRow(uint(5), uint64(7777), uint64(6666), "2024-01", 235).
+		AddRow(uint(9), uint64(7777), uint64(6665), "2024-01", 175).
+		AddRow(uint(2), uint64(7777), uint64(6664), "2024-01", 100)
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
+	mockDb.ExpectQuery(`SELECT \* FROM discord_cursed_channel_stats WHERE guild_id = \$1 AND report_month = \$2 ORDER BY message_count DESC LIMIT 5`).
+		WithArgs(guildId, reportMonth).
+		WillReturnRows(rows)
+	stats := New(mockDb)
+	res, err := stats.GetTopCursedChannelPosters(context.Background(), guildId, reportMonth)
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+	if assert.NoError(t, err, "got error") {
+		assert.Equal(t, expectedResults, res, "result mismatch")
+	}
+}
+
+func TestStats_GetTopCursedChannelPostersErr(t *testing.T) {
+	var guildId uint64 = 999
+	reportMonth := "2024-01"
+	expectedErr := errors.New("underlying db err")
+	mockDb, err := pgxmock.NewPool()
+	require.Nil(t, err, "failed to build pool")
+	defer mockDb.Close()
+	mockDb.ExpectQuery(`SELECT \* FROM discord_cursed_channel_stats WHERE guild_id = \$1 AND report_month = \$2 ORDER BY message_count DESC LIMIT 5`).
+		WithArgs(guildId, reportMonth).
+		WillReturnError(expectedErr)
+	stats := New(mockDb)
+	res, err := stats.GetTopCursedChannelPosters(context.Background(), guildId, reportMonth)
+	assert.Nil(t, mockDb.ExpectationsWereMet(), "unmet expectations")
+	assert.Nil(t, res)
+	if assert.Error(t, err, "missing error") {
+		assert.ErrorIs(t, err, expectedErr, "expected error not wrapped")
+		assert.EqualError(t, err, "failed to get cursed channel post leaders: scany: query multiple result rows: underlying db err")
+	}
+
+}
+
+// TODO add more cursed channel post tests

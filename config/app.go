@@ -29,6 +29,7 @@ type App struct {
 	ConnPool           model.DbPool
 	Stats              *stats.Stats
 	CursedChannelCache cache.ChannelCache
+	CursedWordCache    cache.StringListCache
 }
 
 var loader sync.Once
@@ -65,9 +66,16 @@ func LoadApp() (*App, error) {
 			err = fmt.Errorf("failed to build parser: %w", err)
 			return
 		}
-		cursedChannelCache, err := preloadChannelCache(pool)
+		cursedChannelCache := cache.NewDbChannelCache(pool)
+		err = preloadCache(cursedChannelCache)
 		if err != nil {
 			err = fmt.Errorf("failed to create channel cache: %w", err)
+			return
+		}
+		cursedWordCache := cache.NewPgxStringListCache(pool)
+		err = preloadCache(cursedWordCache)
+		if err != nil {
+			err = fmt.Errorf("failed to build word cache: %w", err)
 			return
 		}
 		app = App{
@@ -77,6 +85,7 @@ func LoadApp() (*App, error) {
 			ConnPool:           pool,
 			Stats:              &statsSvc,
 			CursedChannelCache: cursedChannelCache,
+			CursedWordCache:    cursedWordCache,
 		}
 	})
 	if err != nil {
@@ -85,9 +94,8 @@ func LoadApp() (*App, error) {
 	return &app, nil
 }
 
-func preloadChannelCache(pool *pgxpool.Pool) (*cache.DbChannelCache, error) {
+func preloadCache(c cache.PreloadableCache) error {
 	ctx := context.WithValue(context.Background(), "setup", "channelCache")
-	c := cache.NewDbChannelCache(pool)
 	guilds := make([]uint64, len(GlobalConfig.Discord.ListenConfigs))
 	var err *multierror.Error
 	for i, guildCfg := range GlobalConfig.Discord.ListenConfigs {
@@ -99,8 +107,8 @@ func preloadChannelCache(pool *pgxpool.Pool) (*cache.DbChannelCache, error) {
 		guilds[i] = gid
 	}
 	if err != nil {
-		return nil, err.ErrorOrNil()
+		return err.ErrorOrNil()
 	}
 	e := c.PreloadCache(ctx, guilds)
-	return c, e
+	return e
 }

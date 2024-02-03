@@ -12,6 +12,8 @@ import (
 )
 
 // TODO add interface for this & rename struct. Should have done this from the beginning but whatever
+// TODO logging activity is the same function for different tables. Create a more generic method for logging updates
+// and pass in table name as argument
 
 type Stats struct {
 	pool model.DbPool
@@ -261,6 +263,63 @@ func (s Stats) GetTopCursedChannelPosters(ctx context.Context, guildId uint64, r
 		s.pool,
 		&results,
 		"SELECT * FROM discord_cursed_channel_stats WHERE guild_id = $1 AND report_month = $2 ORDER BY message_count DESC LIMIT 5",
+		guildId,
+		reportMonth,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cursed channel post leaders: %w", err)
+	}
+	return results, nil
+}
+
+func (s Stats) LogCursedPost(ctx context.Context, guildId, userId uint64, reportMonth string, count int) error {
+	var existingLogId uint
+	err := s.pool.QueryRow(ctx,
+		"SELECT id FROM discord_cursed_posts_stats WHERE guild_id = $1 AND user_id = $2 AND report_month = $3",
+		guildId,
+		userId,
+		reportMonth).Scan(&existingLogId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			_, err = s.pool.Exec(ctx,
+				"INSERT INTO discord_cursed_posts_stats(guild_id, user_id, report_month, message_count) VALUES ($1, $2, $3, $4)",
+				guildId,
+				userId,
+				reportMonth,
+				count,
+			)
+			if err != nil {
+				return fmt.Errorf("failed to insert new cursed channel post record: %w", err)
+			}
+			return nil
+		} else {
+			return fmt.Errorf("failed to get existing cursed channel post record: %w", err)
+		}
+	}
+	_, err = s.pool.Exec(ctx,
+		"UPDATE discord_cursed_posts_stats SET message_count = message_count + $1 WHERE id = $2",
+		count, existingLogId)
+	if err != nil {
+		return fmt.Errorf("failed to increment cursed channel post record: %w", err)
+	}
+	return nil
+}
+
+func (s Stats) RemoveCursedPostStatsForMonth(ctx context.Context, reportMonth string) error {
+	_, err := s.pool.Exec(ctx, "DELETE FROM discord_cursed_posts_stats WHERE report_month = $1", reportMonth)
+	if err != nil {
+		return fmt.Errorf("failed to delete cursed channel post stats: %w", err)
+	}
+	return nil
+}
+
+func (s Stats) GetTopCursedPosters(ctx context.Context, guildId uint64, reportMonth string) ([]*model.CursedPostStat, error) {
+	var results []*model.CursedPostStat
+	err := pgxscan.Select(
+		ctx,
+		s.pool,
+		&results,
+		"SELECT * FROM discord_cursed_posts_stats WHERE guild_id = $1 AND report_month = $2 ORDER BY message_count DESC LIMIT 5",
 		guildId,
 		reportMonth,
 	)

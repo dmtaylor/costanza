@@ -23,7 +23,7 @@ const logReactionMetricEventName = "logReaction"
 
 const leaderboardCommandName = "leaderboard"
 
-const reportCount = 4 // update this count for number of reports pulled
+const reportCount = 5 // update this count for number of reports pulled
 
 var leaderboardSlashCommand = &discordgo.ApplicationCommand{
 	Name:        leaderboardCommandName,
@@ -189,6 +189,9 @@ func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.Inter
 			errs <- ierr
 			return
 		}
+		if len(messageStats) < 1 {
+			return
+		}
 		msg := stats.BuildMessageReport(messageStats)
 		_, ierr = sess.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
 			Content: msg,
@@ -202,6 +205,9 @@ func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.Inter
 		gameStats, ierr := s.app.Stats.GetDailyGameLeaders(ctx, guildId, time.Now().Format("2006-01"))
 		if ierr != nil {
 			errs <- ierr
+			return
+		}
+		if len(gameStats) < 1 {
 			return
 		}
 		msg := stats.BuildGameWinReport(gameStats)
@@ -219,6 +225,9 @@ func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.Inter
 			errs <- ierr
 			return
 		}
+		if len(scores) < 1 {
+			return
+		}
 		msg := stats.BuildReactionScoreReport(scores)
 		_, ierr = sess.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
 			Content: msg,
@@ -234,7 +243,28 @@ func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.Inter
 			errs <- ierr
 			return
 		}
+		if len(containedUsers) < 1 {
+			return
+		}
 		msg := stats.BuildCursedChannelPostReport(containedUsers)
+		_, ierr = sess.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
+			Content: msg,
+		})
+		if ierr != nil {
+			errs <- ierr
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		cursedWordPosts, ierr := s.app.Stats.GetTopCursedPosters(ctx, guildId, time.Now().Format("2006-01"))
+		if ierr != nil {
+			errs <- ierr
+			return
+		}
+		if len(cursedWordPosts) < 1 {
+			return
+		}
+		msg := stats.BuildCursedPostReport(cursedWordPosts)
 		_, ierr = sess.FollowupMessageCreate(i.Interaction, false, &discordgo.WebhookParams{
 			Content: msg,
 		})

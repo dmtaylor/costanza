@@ -108,6 +108,7 @@ func runCron(_ *cobra.Command, _ []string) error {
 			err = multierror.Append(err, c.reportDailyGameWins(ctx, lconfig, month))
 			err = multierror.Append(err, c.reportReactionScores(ctx, lconfig, month))
 			err = multierror.Append(err, c.reportContainedUsers(ctx, lconfig, month))
+			err = multierror.Append(err, c.reportCursedPosts(ctx, lconfig, month))
 			errCount := 0
 			if err != nil {
 				errCount = err.Len()
@@ -232,15 +233,34 @@ func (c *cronConfig) reportContainedUsers(ctx context.Context, listenConfig conf
 		return nil
 	}
 	message := stats.BuildCursedChannelPostReport(containedUsers)
-	if err != nil {
-		return fmt.Errorf("failed to build contained user message: %w", err)
-	}
 	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
 	}
 
 	return nil
+}
+
+func (c *cronConfig) reportCursedPosts(ctx context.Context, listenConfig config.ListenConfig, month string) error {
+	guildId, err := strconv.ParseUint(listenConfig.GuildId, 10, 64)
+	if err != nil {
+		return fmt.Errorf("unable to parse guild id %s: %w", listenConfig.GuildId, err)
+	}
+	cursedWordPosts, err := c.app.Stats.GetTopCursedPosters(ctx, guildId, month)
+	if err != nil {
+		return fmt.Errorf("failed to get cursed word user rankings: %w", err)
+	}
+	if len(cursedWordPosts) < 1 {
+		return nil
+	}
+	message := stats.BuildCursedPostReport(cursedWordPosts)
+	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
+	if err != nil {
+		return fmt.Errorf("failed to send message: %w", err)
+	}
+
+	return nil
+
 }
 
 func (c *cronConfig) removeStats(month string) error {
@@ -250,5 +270,6 @@ func (c *cronConfig) removeStats(month string) error {
 	err = multierror.Append(err, c.app.Stats.RemoveDailyGameLeadersForMonth(ctx, month))
 	err = multierror.Append(err, c.app.Stats.RemoveReactionLogForMonth(ctx, month))
 	err = multierror.Append(err, c.app.Stats.RemoveCursedChannelPostStatsForMonth(ctx, month))
+	err = multierror.Append(err, c.app.Stats.RemoveCursedPostStatsForMonth(ctx, month))
 	return err.ErrorOrNil()
 }

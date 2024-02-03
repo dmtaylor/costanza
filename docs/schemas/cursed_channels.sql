@@ -3,4 +3,4 @@ CREATE TABLE IF NOT EXISTS cursed_channels (
     guild_id NUMERIC NOT NULL,
     channel_id NUMERIC NOT NULL
 );
-CREATE INDEX guilds ON cursed_channels(guild_id);
+CREATE INDEX cursed_channel_guilds ON cursed_channels(guild_id);

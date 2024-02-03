@@ -60,3 +60,15 @@ func BuildCursedChannelPostReport(cursedChannelPosters []*model.CursedChannelPos
 
 	return builder.String()
 }
+
+func BuildCursedPostReport(cursedPostStats []*model.CursedPostStat) string {
+	builder := strings.Builder{}
+	builder.WriteString("Most cursed language used:\n")
+	for i, cps := range cursedPostStats {
+		user := discordgo.User{ID: strconv.FormatUint(cps.UserId, 10)}
+		line := fmt.Sprintf("#%d: %s with %d incidents\n", i+1, user.Mention(), cps.MessageCount)
+		builder.WriteString(line)
+	}
+
+	return builder.String()
+}

@@ -1,3 +1,3 @@
-DROP INDEX cursed_channels.guilds;
+DROP INDEX cursed_channel_guilds;
 
 DROP TABLE cursed_channels

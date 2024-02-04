@@ -195,6 +195,26 @@ https://worldle.teuteuf.fr`,
 			},
 			nil,
 		},
+		{
+			"costcodle",
+			args{
+				guildId:  801,
+				userId:   802,
+				gameType: "Costcodle",
+				message: `Costcodle #136 3/6
+⬆️🟥
+⬇️🟥
+✅
+ https://costcodle.com/`,
+			},
+			model.DailyGamePlay{
+				GuildId: 801,
+				UserId:  802,
+				Tries:   3,
+				Win:     true,
+			},
+			nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -285,6 +305,15 @@ https://guessthe.game/`,
 🟩🟩🟩🟩🟨↘️
 🟩🟩🟩🟩🟨⬆️
 https://worldle.teuteuf.fr`,
+			true,
+		},
+		{
+			"costcodle",
+			`Costcodle #136 3/6
+⬆️🟥
+⬇️🟥
+✅
+ https://costcodle.com/`,
 			true,
 		},
 	}

@@ -110,7 +110,7 @@ func runCron(_ *cobra.Command, _ []string) error {
 			err = multierror.Append(err, c.reportContainedUsers(ctx, lconfig, month))
 			err = multierror.Append(err, c.reportCursedPosts(ctx, lconfig, month))
 			errCount := 0
-			if err != nil {
+			if err != nil && err.Len() > 0 {
 				errCount = err.Len()
 				if c.m.enabled {
 					c.m.failedReports.With(promLabels).Add(float64(err.Len()))

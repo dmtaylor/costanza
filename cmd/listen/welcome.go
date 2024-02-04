@@ -20,48 +20,33 @@ func (s *Server) welcomeMessage(sess *discordgo.Session, j *discordgo.GuildMembe
 	if j.User.Bot { // Don't welcome robots
 		return
 	}
+	var err error
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: "welcome"}).Observe(time.Since(start).Seconds())
+			if err != nil {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName, isTimeoutLabel: "false"}).Inc()
+			} else {
+				s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName}).Inc()
+			}
 		}()
 	}
 	ctx := context.WithValue(context.Background(), "memberId", j.User.ID)
 	ctx = context.WithValue(ctx, "guildId", j.GuildID)
+	ctx = context.WithValue(ctx, "type", "welcome")
 
-	var err error
-	defer func() {
-		if err != nil && s.m.enabled {
-			s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName, isTimeoutLabel: "false"}).Inc()
-		}
-	}()
-	callStart := time.Now()
-	channels, err := sess.GuildChannels(j.GuildID)
-	if s.m.enabled {
-		s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: welcomeEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
-	}
+	guild, err := sess.Guild(j.GuildID)
 	if err != nil {
-		slog.ErrorContext(ctx, "error getting channel list: "+err.Error())
+		slog.ErrorContext(ctx, "failed getting guild data: "+err.Error())
 		return
 	}
-	if len(channels) < 1 {
-		slog.WarnContext(ctx, "no guild channels pulled, ignoring")
+	if guild.SystemChannelFlags&discordgo.SystemChannelFlagsSuppressJoinNotifications != 0 {
 		return
 	}
-	for _, channel := range channels {
-		if channel.Type == discordgo.ChannelTypeGuildText && channel.Position == 0 {
-			callStart = time.Now()
-			_, err = sess.ChannelMessageSend(channel.ID, fmt.Sprintf(welcomeMessageFmt, j.User.Mention()))
-			if s.m.enabled {
-				s.m.externalApiDuration.With(prometheus.Labels{eventNameLabel: welcomeEventName, externalApiLabel: externalDiscordCallName}).Observe(time.Since(callStart).Seconds())
-			}
-			if err != nil {
-				slog.ErrorContext(ctx, "failed to send message: "+err.Error(), "channel", channel.ID)
-			}
-			break
-		}
-	}
-	if s.m.enabled {
-		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: guildMemberAddGatewayEvent, eventNameLabel: welcomeEventName}).Inc()
+	_, err = sess.ChannelMessageSend(guild.SystemChannelID, fmt.Sprintf(welcomeMessageFmt, j.User.Mention()))
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to send welcome message: "+err.Error())
+		return
 	}
 }

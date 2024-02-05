@@ -308,7 +308,7 @@ func (s Stats) LogCursedPost(ctx context.Context, guildId, userId uint64, report
 func (s Stats) RemoveCursedPostStatsForMonth(ctx context.Context, reportMonth string) error {
 	_, err := s.pool.Exec(ctx, "DELETE FROM discord_cursed_posts_stats WHERE report_month = $1", reportMonth)
 	if err != nil {
-		return fmt.Errorf("failed to delete cursed channel post stats: %w", err)
+		return fmt.Errorf("failed to delete cursed post stats: %w", err)
 	}
 	return nil
 }

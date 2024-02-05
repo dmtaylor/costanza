@@ -10,7 +10,6 @@ import (
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/hashicorp/go-multierror"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/dmtaylor/costanza/internal/model"
 )
@@ -33,7 +32,7 @@ type channelCacheItem struct {
 	expiry time.Time
 }
 
-func NewDbChannelCache(pool *pgxpool.Pool) *DbChannelCache {
+func NewDbChannelCache(pool model.DbPool) *DbChannelCache {
 	return &DbChannelCache{
 		pool:  pool,
 		cache: make(map[uint64]channelCacheItem),

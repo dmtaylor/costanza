@@ -223,3 +223,47 @@ func TestBuildCursedChannelPostReport(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildCursedPostReport(t *testing.T) {
+	tests := []struct {
+		name            string
+		cursedPostStats []*model.CursedPostStat
+		want            string
+	}{
+		{
+			"basic",
+			[]*model.CursedPostStat{
+				{
+					98,
+					9999,
+					554,
+					"2024-01",
+					9867,
+				},
+				{
+					1241,
+					9999,
+					582,
+					"2024-01",
+					600,
+				},
+				{
+					10,
+					9999,
+					525,
+					"2024-01",
+					143,
+				},
+			},
+			"Most cursed language used:\n" +
+				"#1: <@554> with 9867 incidents\n" +
+				"#2: <@582> with 600 incidents\n" +
+				"#3: <@525> with 143 incidents\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, BuildCursedPostReport(tt.cursedPostStats), "BuildCursedPostReport(%v)", tt.cursedPostStats)
+		})
+	}
+}

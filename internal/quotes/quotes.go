@@ -3,10 +3,10 @@ package quotes
 import (
 	"context"
 	"fmt"
+	"math/rand/v2"
 	"sync"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
-	"golang.org/x/exp/rand"
 
 	"github.com/dmtaylor/costanza/internal/model"
 )
@@ -29,14 +29,13 @@ type QuoteEngineImpl struct {
 	size   uint
 }
 
-func NewQuoteEngine(connPool model.DbPool, seed uint64) (*QuoteEngineImpl, error) {
+func NewQuoteEngine(connPool model.DbPool, seed1, seed2 uint64) (*QuoteEngineImpl, error) {
 	ctx := context.Background()
 	size, err := getQuoteCount(ctx, connPool)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get quote count: %w", err)
 	}
-	src := &rand.PCGSource{}
-	src.Seed(seed)
+	src := rand.NewPCG(seed1, seed2)
 	engine := &QuoteEngineImpl{
 		rng:    rand.New(src),
 		lock:   sync.Mutex{},
@@ -49,7 +48,7 @@ func NewQuoteEngine(connPool model.DbPool, seed uint64) (*QuoteEngineImpl, error
 
 func (q *QuoteEngineImpl) GetQuoteSql(ctx context.Context) (model.Quote, error) {
 	q.lock.Lock()
-	idx := q.rng.Intn(int(q.size))
+	idx := q.rng.IntN(int(q.size))
 	q.lock.Unlock()
 	return q.GetQuoteById(ctx, idx)
 }

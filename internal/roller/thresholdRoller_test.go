@@ -136,7 +136,8 @@ func TestThresholdRoll_Value(t *testing.T) {
 }
 
 func TestThresholdRoller_DoThresholdRoll(t *testing.T) {
-	var testSeed uint64 = 1111111
+	var testSeed1 uint64 = 5438972
+	var testSeed2 uint64 = 2222222
 	type args struct {
 		count  int
 		sides  int
@@ -160,13 +161,13 @@ func TestThresholdRoller_DoThresholdRoll(t *testing.T) {
 			ThresholdRoll{
 				params: ThresholdParameters{passOn: 8, explodeOn: math.MaxInt},
 				rolls: []singleThresholdRoll{
-					{value: 3},
-					{value: 9},
+					{value: 5},
+					{value: 10},
 				},
 			},
 			false,
 			1,
-			"3 9",
+			"5 10",
 		},
 		{
 			"exploding_threshold",
@@ -178,26 +179,26 @@ func TestThresholdRoller_DoThresholdRoll(t *testing.T) {
 			ThresholdRoll{
 				params: ThresholdParameters{passOn: 8, explodeOn: 9},
 				rolls: []singleThresholdRoll{
-					{value: 3},
-					{value: 9},
-					{value: 2, isExplode: true},
-					{value: 8},
+					{value: 5},
 					{value: 10},
 					{value: 9, isExplode: true},
+					{value: 10, isExplode: true},
+					{value: 7, isExplode: true},
+					{value: 10},
 					{value: 2, isExplode: true},
-					{value: 9},
-					{value: 2, isExplode: true},
+					{value: 2},
+					{value: 1},
 				},
 			},
 			false,
-			5,
-			"3 9 (2) 8 10 (9) (2) 9 (2)",
+			4,
+			"5 10 (9) (10) (7) 10 (2) 2 1",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			roller := &ThresholdRoller{
-				baseRoller: NewTestBaseRoller(testSeed),
+				baseRoller: NewTestBaseRoller(testSeed1, testSeed2),
 			}
 			got, err := roller.DoThresholdRoll(tt.args.count, tt.args.sides, tt.args.params)
 			if (err != nil) != tt.wantErr {

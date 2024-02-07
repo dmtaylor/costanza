@@ -52,10 +52,14 @@ type ThresholdRoller struct {
 	baseRoller *BaseRoller
 }
 
-func NewThresholdRoller() *ThresholdRoller {
-	return &ThresholdRoller{
-		NewBaseRoller(),
+func NewThresholdRoller() (*ThresholdRoller, error) {
+	r, err := NewBaseRoller()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build roller: %w", err)
 	}
+	return &ThresholdRoller{
+		r,
+	}, nil
 }
 
 func (t *ThresholdRoller) DoThresholdRoll(count, sides int, params ThresholdParameters) (ThresholdRoll, error) {

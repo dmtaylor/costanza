@@ -1,17 +1,15 @@
 package roller
 
 import (
+	"math/rand/v2"
 	"sync"
 	"testing"
-
-	"golang.org/x/exp/rand"
 )
 
 const rngSeed = 8675309
 
 func TestBaseRoller_getRoll(t *testing.T) {
-	src := &rand.PCGSource{}
-	src.Seed(rngSeed)
+	src := rand.NewPCG(1, 2)
 	type fields struct {
 		rng  *rand.Rand
 		lock *sync.Mutex
@@ -47,8 +45,9 @@ func TestBaseRoller_getRoll(t *testing.T) {
 }
 
 func TestBaseRoller_DoRoll(t *testing.T) {
-	src := &rand.PCGSource{}
-	src.Seed(rngSeed)
+	// src := &rand.PCGSource{}
+	// src.Seed(rngSeed)
+	src := rand.NewPCG(3, 4)
 	type fields struct {
 		rng  *rand.Rand
 		lock *sync.Mutex
@@ -102,8 +101,9 @@ func TestBaseRoller_DoRoll(t *testing.T) {
 }
 
 func BenchmarkBaseRoller_DoRoll(b *testing.B) {
-	src := &rand.PCGSource{}
-	src.Seed(rngSeed)
+	// src := &rand.PCGSource{}
+	// src.Seed(rngSeed)
+	src := rand.NewPCG(5, 6)
 	r := &BaseRoller{
 		rng:  rand.New(src),
 		lock: &sync.Mutex{},

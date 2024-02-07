@@ -238,8 +238,12 @@ func NewDNotationParser() (*DNotationParser, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to build parser: %w", err)
 	}
+	r, err := roller.NewBaseRoller()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build roller: %w", err)
+	}
 	return &DNotationParser{
-		roller: roller.NewBaseRoller(),
+		roller: r,
 		parser: parser,
 	}, nil
 }

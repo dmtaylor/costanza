@@ -1,10 +1,12 @@
 package roller
 
 import (
+	crand "crypto/rand"
+	"encoding/binary"
+	"fmt"
+	"math/rand/v2"
 	"sync"
 	"time"
-
-	"golang.org/x/exp/rand"
 )
 
 type BaseRoller struct {
@@ -13,13 +15,18 @@ type BaseRoller struct {
 }
 
 // NewBaseRoller creates basic roller with default rng
-func NewBaseRoller() *BaseRoller {
-	return newRoller(uint64(time.Now().UnixNano()))
+func NewBaseRoller() (*BaseRoller, error) {
+	buf := make([]byte, 8)
+	_, err := crand.Read(buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rand seed: %w", err)
+	}
+	return newRoller(uint64(time.Now().UnixNano()), binary.NativeEndian.Uint64(buf)), nil
 }
 
 // NewTestBaseRoller creates basic roller with pinned seed for predictable results for testing
-func NewTestBaseRoller(seed uint64) *BaseRoller {
-	return newRoller(seed)
+func NewTestBaseRoller(seed1, seed2 uint64) *BaseRoller {
+	return newRoller(seed1, seed2)
 }
 
 func (r *BaseRoller) DoRoll(num int, base int) BaseRoll {
@@ -33,12 +40,11 @@ func (r *BaseRoller) DoRoll(num int, base int) BaseRoll {
 func (r *BaseRoller) getRoll(base int) int {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	return r.rng.Intn(base) + 1
+	return r.rng.IntN(base) + 1
 }
 
-func newRoller(seed uint64) *BaseRoller {
-	src := &rand.PCGSource{}
-	src.Seed(seed)
+func newRoller(seed1, seed2 uint64) *BaseRoller {
+	src := rand.NewPCG(seed1, seed2)
 	return &BaseRoller{
 		rng:  rand.New(src),
 		lock: &sync.Mutex{},

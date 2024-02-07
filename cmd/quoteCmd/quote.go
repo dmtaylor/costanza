@@ -2,6 +2,8 @@ package quoteCmd
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"time"
 
@@ -41,7 +43,12 @@ func runQuote(_ *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to build conn pool: %w", err)
 	}
-	engine, err := quotes.NewQuoteEngine(pool, uint64(time.Now().UnixNano()))
+	buf := make([]byte, 8)
+	_, err = rand.Read(buf)
+	if err != nil {
+		return fmt.Errorf("failed to get crypto seed: %w", err)
+	}
+	engine, err := quotes.NewQuoteEngine(pool, uint64(time.Now().UnixNano()), binary.NativeEndian.Uint64(buf))
 	if err != nil {
 		return fmt.Errorf("failed to build engine: %w", err)
 	}

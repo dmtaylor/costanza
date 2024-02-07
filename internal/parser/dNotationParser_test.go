@@ -11,7 +11,8 @@ import (
 	"github.com/dmtaylor/costanza/internal/roller"
 )
 
-const testSeed = 12345
+const testSeed1 = 123456
+const testSeed2 = 678910
 const shortParseExpression = "1d6 + 2"
 const longParseExpression = "(2d4 + 2 * 2) - (5d6 - 5) / 3 + (10d10 + 20d4 * 1d4)"
 
@@ -36,8 +37,8 @@ func TestDNotationParser_DoParse(t *testing.T) {
 			"simple_roll_test",
 			"3d6",
 			&DNotationResult{
-				Value:    8,
-				StrValue: "[3 + 3 + 2]",
+				Value:    12,
+				StrValue: "[2 + 5 + 5]",
 			},
 			nil,
 		},
@@ -45,8 +46,8 @@ func TestDNotationParser_DoParse(t *testing.T) {
 			"complex_roll_test",
 			"5d10 + 2 * (2d12 - 3d4)",
 			&DNotationResult{
-				Value:    69,
-				StrValue: "[9 + 9 + 6 + 9 + 8] + 2 * ( [11 + 11] - [2 + 2 + 4] )",
+				Value:    27,
+				StrValue: "[2 + 8 + 8 + 6 + 5] + 2 * ( [2 + 6] - [4 + 1 + 4] )",
 			},
 			nil,
 		},
@@ -75,7 +76,7 @@ func TestDNotationParser_DoParse(t *testing.T) {
 				t.Errorf("error when building parser: %s", err.Error())
 				return
 			}
-			parser.roller = roller.NewTestBaseRoller(testSeed)
+			parser.roller = roller.NewTestBaseRoller(testSeed1, testSeed2)
 			result, err := parser.DoParse(tt.input)
 			if tt.expectedErr == nil {
 				if err != nil {
@@ -119,7 +120,7 @@ func BenchmarkDNotationParser_DoParseShort(b *testing.B) {
 		b.Errorf("failed to build parser: %s", err.Error())
 		return
 	}
-	parser.roller = roller.NewTestBaseRoller(testSeed)
+	parser.roller = roller.NewTestBaseRoller(testSeed1, testSeed2)
 	for i := 0; i < b.N; i++ {
 		_, err = parser.DoParse(shortParseExpression)
 		if err != nil {
@@ -135,7 +136,7 @@ func BenchmarkDNotationParser_DoParseLong(b *testing.B) {
 		b.Errorf("failed to build parser: %s", err.Error())
 		return
 	}
-	parser.roller = roller.NewTestBaseRoller(testSeed)
+	parser.roller = roller.NewTestBaseRoller(testSeed1, testSeed2)
 	for i := 0; i < b.N; i++ {
 		_, err = parser.DoParse(longParseExpression)
 		if err != nil {

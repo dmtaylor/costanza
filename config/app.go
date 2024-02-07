@@ -2,6 +2,8 @@ package config
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"strconv"
 	"sync"
@@ -55,7 +57,13 @@ func LoadApp() (*App, error) {
 			err = fmt.Errorf("failed to get db connection: %w", err)
 			return
 		}
-		qEngine, err := quotes.NewQuoteEngine(pool, uint64(time.Now().UnixNano()))
+		buf := make([]byte, 8)
+		_, err = rand.Read(buf)
+		if err != nil {
+			err = fmt.Errorf("failed to get crypto seed: %w", err)
+			return
+		}
+		qEngine, err := quotes.NewQuoteEngine(pool, uint64(time.Now().UnixNano()), binary.NativeEndian.Uint64(buf))
 		if err != nil {
 			err = fmt.Errorf("server failed to build quote engine: %w", err)
 			return
@@ -64,6 +72,11 @@ func LoadApp() (*App, error) {
 		dNotationParser, err := parser.NewDNotationParser()
 		if err != nil {
 			err = fmt.Errorf("failed to build parser: %w", err)
+			return
+		}
+		thRoller, err := roller.NewThresholdRoller()
+		if err != nil {
+			err = fmt.Errorf("failed to build threshold roller: %w", err)
 			return
 		}
 		cursedChannelCache := cache.NewDbChannelCache(pool)
@@ -81,7 +94,7 @@ func LoadApp() (*App, error) {
 		app = App{
 			Quotes:             qEngine,
 			DNotationParser:    dNotationParser,
-			ThresholdRoller:    roller.NewThresholdRoller(),
+			ThresholdRoller:    thRoller,
 			ConnPool:           pool,
 			Stats:              &statsSvc,
 			CursedChannelCache: cursedChannelCache,

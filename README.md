@@ -19,16 +19,16 @@ $ go build
 $ ./costanza listen
 ```
 
-You can also build the binary by running `make` or `mage build`.
+You can also build the binary by running `mage build`.
 
 Database migrations are contained under `migrations`. [go-migrate](https://github.com/golang-migrate/migrate) can be used to run them against the
 DB (and is used by docker-compose to run the migrations in the containerized setup), but any migration tool supporting up/down operations should be fine.
 
 To spin it up in a container (including the DB & running all migrations), use `docker-compose up`. Naturally you will need Docker &
 docker-compose installed for this. Running via docker-compose requires directories `/var/costanza/db_data` & `/var/costanza_dev/db_data`
-for the Postgres volume mounts. Using the Makefile targets for docker-compose based deployments should ensure these directories are created as needed.
+for the Postgres volume mounts. Using the `mage` targets for docker-compose based deployments should ensure these directories are created as needed.
 
-There is a Makefile & [magefiles](https://magefile.org) for commonly used targets.
+There are [magefiles](https://magefile.org) for commonly used targets.
 
 ## Usage
 Costanza has the following subcommands:
@@ -37,16 +37,21 @@ Costanza has the following subcommands:
 - roll: runs the dice roller using the positional arguments. This is useful for testing out changes to the parser on the command line
 - quote: prints a quote to stdout. This is useful for testing changes to quote retrieval.
 - cfg: loads configuration from environment. This is useful in debugging issues loading configuration.
-- report: send usage reports for the given month to the configured channels
-  - remove: remove usage status for the given month from the db
 
 The following behaviors are present in listen mode:
 - If Costanza is @-ed, it will respond with a random quote from a slightly curated list of George Costanza quotes
 - If a user posts between 12:30 AM & 6:00 AM & their user ID is included in `INSOMNIAC_IDS` or they have a role listed in `INSOMNIAC_ROLES`, they get a gentle reminder to sleep
 - A welcome message is sent when a user joins the guild.
+- Will record a variety of activity statistics for `listen_guild`s in the configs:
+  - Record the number of messages a user has sent to the guild.
+  - Record game statistics for supported game types (e.g. Wordle)
+  - Record the difference of reactions to messages to get top lurkers
+  - Record count of messages containing bad language or on "contained" channels
+    - Word & channel lists are stored in Postgres
 
 Costanza has these slash commands:
 - `/chelp`: sends brief usage details.
+- `/license`: sends license & version info
 - `/roll {roll value}`: argument text is parsed as a d-notation roll and evaluated.
 - `/srroll {roll value}`: argument text is parsed & evaluated as d-notation, and the resulting value is run as a Shadowrun roll.
 - `/wodroll {roll value} [chance] [9again] [8again]`: argument text is parsed and evaluated as d-notation, and the resulting value is run as a World of Darkness roll. Optional arguments indicate
@@ -54,6 +59,7 @@ if the roll is a chance die, has 8-again, or 9-again. Rolls of < 1 dice are ran 
 - `/dhtest {roll value}`: argument text is parsed and evaluated as d-notation, and the resulting value is run as a Dark Heresy/Fantasy Flight Warhammer 40k
 RPG skill test (i.e. over or under 1d100)
 - `/weather [location]`: gets current weather conditions for given location, or defaults from config file. Uses [wttr.in](https://wttr.in/) for weather data.
+- `/leaderboard`: displays the stats leaderboards for the month so far
 
 ## Environment Variables
 
@@ -71,6 +77,9 @@ If you're encountering issues with the db service, check that those directories 
 is unset.
 
 ## TODO
+- Improve test coverage:
+  - Add mocked discordgo sessions to improve coverage under `/cmd`
+- Various refactors marked with `#TODO`
 - Add initiative tracking system
 - Add rolling types for other popular systems (Savage Worlds?)
     - Dark Heresy/FF 40k damage rolls

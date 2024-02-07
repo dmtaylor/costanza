@@ -20,6 +20,8 @@ type StringListCache interface {
 	Clear(ctx context.Context)
 }
 
+// TODO update PgxStringListCache to have a configurable table & column name to make more generic
+
 type PgxStringListCache struct {
 	pool      model.DbPool
 	cache     map[uint64]stringListCacheItem

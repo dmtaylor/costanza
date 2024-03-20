@@ -21,7 +21,7 @@ import (
 const dailyGameHandlerEventName = "dailyGameHandler"
 const dailyGameReactionEventName = "dailyGameReaction"
 
-var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Worldle|Heardle|GuessTheGame|Episode|Flashback|Costcodle)\s+.*#?\d+.*[🟩⬛⬜🟥🟨]`)
+var gamePattern = regexp.MustCompile(`(?s)(Framed|Tradle|Wordle|Worldle|Heardle|GuessTheGame|Episode|Flashback|Costcodle)\s+.*#?\d+.*[🟩⬛⬜🟥🟨✅]`)
 var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#?(Tradle|Wordle|Worldle|Costcodle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
 
 // dailyGameHandler performs handling of daily game events
@@ -30,37 +30,38 @@ func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageC
 		return
 	}
 
+	var err error
+
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName}).Observe(time.Since(start).Seconds())
+			if err != nil {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
+			} else {
+				s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName}).Inc()
+			}
 		}()
 	}
 	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	if groups := gamePattern.FindStringSubmatch(m.Content); groups != nil {
-		guildId, err := strconv.ParseUint(m.GuildID, 10, 64)
+		var guildId uint64
+		guildId, err = strconv.ParseUint(m.GuildID, 10, 64)
 		if err != nil {
-			if s.m.enabled {
-				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
-			}
 			slog.ErrorContext(ctx, "failed to parse guild id as uint64", "guildId", m.GuildID)
 			return
 		}
-		userId, err := strconv.ParseUint(m.Author.ID, 10, 64)
+		var userId uint64
+		userId, err = strconv.ParseUint(m.Author.ID, 10, 64)
 		if err != nil {
-			if s.m.enabled {
-				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
-			}
 			slog.ErrorContext(ctx, "failed to parse user id as uint64", "userId", m.Author.ID)
 			return
 		}
 		slog.DebugContext(ctx, "matched game pattern", "message", m.Content, "userId", userId, "guildId", guildId)
-		gameResult, err := createGameResult(guildId, userId, groups[1], m.Content)
+		var gameResult model.DailyGamePlay
+		gameResult, err = createGameResult(guildId, userId, groups[1], m.Content)
 		if err != nil {
-			if s.m.enabled {
-				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
-			}
 			slog.ErrorContext(ctx, "failed to get game results", "error", err.Error())
 			return
 		}
@@ -85,17 +86,11 @@ func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageC
 
 		wg.Wait()
 		if handleError != nil && handleError.Len() > 0 {
-			if s.m.enabled {
-				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName, isTimeoutLabel: "false"}).Inc()
-			}
+			err = handleError.ErrorOrNil()
 			slog.ErrorContext(ctx, fmt.Sprintf("error(s) adding reaction: %s", handleError.Error()))
 			return
 		}
 
-	}
-
-	if s.m.enabled {
-		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: dailyGameHandlerEventName}).Inc()
 	}
 }
 
@@ -119,10 +114,10 @@ func isGameMessage(message string) bool {
 // createGameResult converts message data into a DailyGamePlay i.e. parse message into actual results
 func createGameResult(guildId, userId uint64, gameType, message string) (model.DailyGamePlay, error) {
 	result := model.DailyGamePlay{
-		guildId,
-		userId,
-		0,
-		false,
+		GuildId: guildId,
+		UserId:  userId,
+		Tries:   0,
+		Win:     false,
 	}
 	switch gameType {
 	case "Framed":

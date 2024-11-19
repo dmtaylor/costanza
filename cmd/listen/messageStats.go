@@ -277,6 +277,8 @@ func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.Inter
 		slog.ErrorContext(ctx, "failed to pull stat: "+e.Error())
 		merr = multierror.Append(merr, e)
 	}
-	err = merr.ErrorOrNil()
+	if merr != nil {
+		err = merr.ErrorOrNil()
+	}
 
 }

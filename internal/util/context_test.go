@@ -14,7 +14,7 @@ var eventTime = time.Date(2023, time.July, 15, 9, 0, 0, 0, time.UTC)
 
 func TestContextFromDiscordMessageCreate(t *testing.T) {
 	// unused fields omitted for brevity. Real production payloads will contain more information
-	m := &discordgo.MessageCreate{&discordgo.Message{
+	m := &discordgo.MessageCreate{Message: &discordgo.Message{
 		ID:        "1234567",
 		ChannelID: "8901234",
 		GuildID:   "2345678",
@@ -51,7 +51,7 @@ func TestContextFromDiscordMessageCreate(t *testing.T) {
 
 func TestContextFromDiscordInteractionCreate(t *testing.T) {
 	// Abridged data for InteractionCreate event. In production this will be more complete
-	i := &discordgo.InteractionCreate{&discordgo.Interaction{
+	i := &discordgo.InteractionCreate{Interaction: &discordgo.Interaction{
 		ID:      "42",
 		GuildID: "8723",
 		Member: &discordgo.Member{

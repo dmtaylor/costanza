@@ -280,6 +280,8 @@ func (s *Server) doShadowrunRoll(input string) (string, error) {
 		_, err = res.WriteString("\nYou glitched! I can't believe this! What was wrong with it? What didn't you like about it?")
 	case roller.SrCritGlitch:
 		_, err = res.WriteString("\nYou critically glitched! I don't want hope. Hope is killing me. My dream is to become hopeless. When you're hopeless, you don't care, and when you don't care, that indifference makes you attractive.")
+	case roller.SrNoGlitch:
+		// Nothing special if regular roll
 	}
 	if err != nil {
 		return "", fmt.Errorf("failed to write optional glitch status to buffer: %w", err)

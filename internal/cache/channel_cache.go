@@ -86,6 +86,9 @@ func (c *DbChannelCache) PreloadCache(ctx context.Context, guildIds []uint64) er
 		c.Set(ctx, guildId, dbValues)
 	}
 
+	if err == nil {
+		return nil
+	}
 	return err.ErrorOrNil()
 }
 

@@ -164,9 +164,6 @@ func (c *cronConfig) reportMessageStats(ctx context.Context, listenConfig config
 		return nil
 	}
 	message := stats.BuildMessageReport(topUsers)
-	if err != nil {
-		return fmt.Errorf("failed to format leaders: %w", err)
-	}
 	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
@@ -187,9 +184,6 @@ func (c *cronConfig) reportDailyGameWins(ctx context.Context, listenConfig confi
 		return nil
 	}
 	message := stats.BuildGameWinReport(topWinners)
-	if err != nil {
-		return fmt.Errorf("failed to build game win message: %w", err)
-	}
 	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)
@@ -210,9 +204,6 @@ func (c *cronConfig) reportReactionScores(ctx context.Context, listenConfig conf
 		return nil
 	}
 	message := stats.BuildReactionScoreReport(topReactionScores)
-	if err != nil {
-		return fmt.Errorf("failed to build reaction score message: %w", err)
-	}
 	_, err = c.sess.ChannelMessageSend(listenConfig.ReportChannelId, message)
 	if err != nil {
 		return fmt.Errorf("failed to send message: %w", err)

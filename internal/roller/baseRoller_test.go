@@ -6,8 +6,6 @@ import (
 	"testing"
 )
 
-const rngSeed = 8675309
-
 func TestBaseRoller_getRoll(t *testing.T) {
 	src := rand.NewPCG(1, 2)
 	type fields struct {

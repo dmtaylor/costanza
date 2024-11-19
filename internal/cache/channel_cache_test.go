@@ -160,6 +160,7 @@ func TestDbChannelCache_GetExpiredEntry(t *testing.T) {
 	}
 }
 
+//goland:noinspection Annotator
 func TestDbChannelCache_PreloadCache(t *testing.T) {
 	mockDb, err := pgxmock.NewPool()
 	require.Nil(t, err, "failed to build pool")

@@ -231,6 +231,56 @@ https://costcodle.com/`,
 			},
 			nil,
 		},
+		{
+			name: "acted",
+			args: args{
+				guildId:  801,
+				userId:   802,
+				gameType: "Acted",
+				message: `Acted #303 
+🟥🟥🟥🟥🟩⬜
+
+https://acted.wtf/`,
+			},
+			want: model.DailyGamePlay{
+				GuildId: 801,
+				UserId:  802,
+				Tries:   5,
+				Win:     true,
+			},
+			expectedError: nil,
+		},
+		{
+			name: "rogule",
+			args: args{
+				guildId:  801,
+				userId:   802,
+				gameType: "Rogule",
+				message:  "#Rogule 2024-11-18\n🧝 5xp ⛩ 201 👣 \nstreak: 1\n🟩🟩🟩⬜⬜\n⚔ 🐺👹🐗👹👹\n🌰🍄🍄🍄💎\n\nhttps://rogule.com/",
+			},
+			want: model.DailyGamePlay{
+				GuildId: 801,
+				UserId:  802,
+				Tries:   1,
+				Win:     true,
+			},
+		},
+		{
+			name: "rogule_loss",
+			args: args{
+				guildId:  801,
+				userId:   802,
+				gameType: "Rogule",
+				message:  "#Rogule 2024-11-12\n🧝 3xp ☠🧞 40 👣 \nstreak: 0\n⬜⬜⬜⬜⬜\n⚔ 🦇\n🌰⬜⬜⬜🍄⬜\nhttps://rogule.com/",
+			},
+			want: model.DailyGamePlay{
+				GuildId: 801,
+				UserId:  802,
+				Tries:   1,
+				Win:     false,
+			},
+			expectedError: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -338,6 +388,26 @@ https://worldle.teuteuf.fr`,
 ✅
 https://costcodle.com/`,
 			true,
+		},
+		{
+			name: "acted",
+			message: `Acted #303 
+🟥🟥🟥🟥🟩⬜
+
+https://acted.wtf/`,
+			want: true,
+		},
+		{
+			name: "rougle",
+			message: `#Rogule 2024-11-18
+🧝 5xp ⛩ 201 👣 
+streak: 1
+🟩🟩🟩⬜⬜
+⚔ 🐺👹🐗👹👹
+🌰🍄🍄🍄💎
+
+https://rogule.com/`,
+			want: true,
 		},
 	}
 	for _, tt := range tests {

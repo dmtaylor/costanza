@@ -55,7 +55,7 @@ func TestDNotationParser_DoParse(t *testing.T) {
 			name:  "simple_lexing_error",
 			input: "5 + alphachars",
 			expectedErr: fmt.Errorf("failed to parse string: %w", &participle.ParseError{
-				Msg: "invalid input text \"alphachars\"",
+				Msg: "lexer: invalid input text \"alphachars\"",
 				Pos: lexer.Position{Line: 1, Column: 5},
 			}),
 		},

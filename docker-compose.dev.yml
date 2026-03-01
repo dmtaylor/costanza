@@ -21,4 +21,4 @@ services:
     ports:
       - "54321:5432"
     volumes:
-      - /var/costanza_dev/db_data:/var/lib/postgresql/data/
+      - /var/costanza_dev/db_data:/var/lib/postgresql/

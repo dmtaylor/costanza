@@ -18,12 +18,64 @@ import (
 
 const cursedChannelLogEventName = "cursed_channel"
 const cursedWordLogEventName = "cursed_post"
+const cursedAdminCommandName = "cursed-admin"
+const cursedAdminListSubcommand = "list"
+const cursedAdminAddSubcommand = "add"
+const cursedAdminRemoveSubcommand = "remove"
 
 var cursedChannelBaseLabels = prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: cursedChannelLogEventName}
 var cursedWordBaseLabels = prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: cursedWordLogEventName}
 
+var cursedAdminSlashCommand = &discordgo.ApplicationCommand{
+	Name:        cursedAdminCommandName,
+	Type:        discordgo.ChatApplicationCommand,
+	Description: "Manage cursed words on the server",
+	Options: []*discordgo.ApplicationCommandOption{
+		{
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Name:        cursedAdminListSubcommand,
+			Description: "List of cursed words on the server",
+		},
+		{
+			Name:        cursedAdminAddSubcommand,
+			Description: "Add to the cursed words on the server",
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "word",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Description: "Word to add to the cursed words on the server",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        cursedAdminRemoveSubcommand,
+			Type:        discordgo.ApplicationCommandOptionSubCommand,
+			Description: "Remove from the cursed words on the server",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "word",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Description: "Word to remove from the cursed words on the server",
+					Required:    true,
+				},
+			},
+		},
+	},
+}
+
+func (s *Server) processCursedAdminCommand(sess *discordgo.Session, i *discordgo.InteractionCreate) {
+	if i.Type != discordgo.InteractionApplicationCommand {
+		return
+	}
+	if i.ApplicationCommandData().Name != cursedAdminCommandName {
+		return
+	}
+}
+
 func (s *Server) logCursedChannelStat(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || m.Author.ID == sess.State.User.ID {
+	if util.MessageExcluded(sess, m) {
 		return
 	}
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
@@ -76,7 +128,7 @@ func (s *Server) logCursedChannelStat(sess *discordgo.Session, m *discordgo.Mess
 }
 
 func (s *Server) logCursedPostStat(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.Bot || m.Author.ID == sess.State.User.ID {
+	if util.MessageExcluded(sess, m) {
 		return
 	}
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {

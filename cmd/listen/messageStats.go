@@ -32,11 +32,7 @@ var leaderboardSlashCommand = &discordgo.ApplicationCommand{
 }
 
 func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
-
-	if m.Author.Bot {
+	if util.MessageExcluded(sess, m) {
 		return
 	}
 	// Only log stats if channel included in configs

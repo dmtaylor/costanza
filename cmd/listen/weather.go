@@ -107,7 +107,7 @@ func (s *Server) getWeatherString(ctx context.Context, locations []string) (stri
 			return "", fmt.Errorf("failed getting weather data: %w", err)
 		}
 		body, err := io.ReadAll(res.Body)
-		res.Body.Close()
+		_ = res.Body.Close()
 		if res.StatusCode > 299 {
 			return "", fmt.Errorf("failure from wttr code %d body %s: %w", res.StatusCode, body, err)
 		}

@@ -11,7 +11,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dmtaylor/costanza/config"
-	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const insomniacEventName = "insomniac"
@@ -19,18 +18,13 @@ const insomniacEventName = "insomniac"
 var startLateHours, endLateHours time.Time
 var timeLoader sync.Once
 
-func (s *Server) echoInsomniac(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
-
+func (s *Server) echoInsomniac(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: insomniacEventName}).Observe(time.Since(start).Seconds())
 		}()
 	}
-	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	if isAfterHours(ctx) && s.isInsomniacUser(ctx, m.Author, m.Member) {
 		callStart := time.Now()

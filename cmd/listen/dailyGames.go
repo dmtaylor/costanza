@@ -15,7 +15,6 @@ import (
 
 	"github.com/dmtaylor/costanza/config"
 	"github.com/dmtaylor/costanza/internal/model"
-	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const dailyGameHandlerEventName = "dailyGameHandler"
@@ -25,10 +24,7 @@ var gamePattern = regexp.MustCompile(`(?s)#?(Framed|Tradle|Wordle|Worldle|Heardl
 var wordleAndTradleCapturePattern = regexp.MustCompile(`(?s)#?(Tradle|Wordle|Worldle|Costcodle)\s.*#?\d+\s+(\d+|X)/(\d+)`)
 
 // dailyGameHandler performs handling of daily game events
-func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
+func (s *Server) dailyGameHandler(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
 
 	var err error
 
@@ -43,7 +39,6 @@ func (s *Server) dailyGameHandler(sess *discordgo.Session, m *discordgo.MessageC
 			}
 		}()
 	}
-	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	if groups := gamePattern.FindStringSubmatch(m.Content); groups != nil {
 		var guildId uint64

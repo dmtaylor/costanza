@@ -20,13 +20,6 @@ const worldOfDarknessCommandName = "wodroll"
 const darkHeresyTestCommandName = "dhtest"
 const rollOptionName = "roll"
 
-var rollCommands = map[string]bool{
-	rollCommandName:            true,
-	shadowrunCommandName:       true,
-	worldOfDarknessCommandName: true,
-	darkHeresyTestCommandName:  true,
-}
-
 var rollSlashCommand = &discordgo.ApplicationCommand{
 	Name:        rollCommandName,
 	Type:        discordgo.ChatApplicationCommand,
@@ -104,21 +97,9 @@ var darkHeresyTestSlashCommand = &discordgo.ApplicationCommand{
 // dispatchRollCommands Main entrypoint into handling roll commands. Reads the first word of the message content
 // and calls the appropriate method for performing a roll. Update this to add additional message prefixes for additional
 // roll types.
-func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.InteractionCreate) {
+func (s *Server) dispatchRollCommands(ctx context.Context, sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	// Ensure we only get options from slash commands
-	if i.Type != discordgo.InteractionApplicationCommand {
-		return
-	}
-	if i.User != nil && i.User.Bot {
-		return
-	}
-	if i.Member != nil && i.Member.User.Bot {
-		return
-	}
 	cmdName := i.ApplicationCommandData().Name
-	if _, ok := rollCommands[cmdName]; !ok { // stop running if not a roll command
-		return
-	}
 
 	if s.m.enabled {
 		start := time.Now()
@@ -126,8 +107,6 @@ func (s *Server) dispatchRollCommands(sess *discordgo.Session, i *discordgo.Inte
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cmdName}).Observe(time.Since(start).Seconds())
 		}()
 	}
-	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
-	defer cancel()
 	options := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(i.ApplicationCommandData().Options))
 	for _, option := range i.ApplicationCommandData().Options {
 		options[option.Name] = option

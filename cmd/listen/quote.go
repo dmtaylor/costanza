@@ -13,23 +13,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dmtaylor/costanza/internal/model"
-	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const quoteEventName = "quote"
 
 // echoQuote handler function for sending George Costanza quotes
-func (s *Server) echoQuote(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID == sess.State.User.ID {
-		return
-	}
+func (s *Server) echoQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: quoteEventName}).Observe(time.Since(start).Seconds())
 		}()
 	}
-	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	for _, mentionedUser := range m.Mentions {
 		if mentionedUser.ID == sess.State.User.ID {
@@ -75,7 +70,7 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 			return err
 		}
 	case model.FileQuoteType:
-		err = s.sendFileQuote(sess, m, quoteData)
+		err = s.sendFileQuote(ctx, sess, m, quoteData)
 		if err != nil {
 			slog.ErrorContext(ctx, "error sending message: "+err.Error())
 			return err
@@ -87,12 +82,17 @@ func (s *Server) sendQuote(ctx context.Context, sess *discordgo.Session, m *disc
 	return nil
 }
 
-func (s *Server) sendFileQuote(sess *discordgo.Session, m *discordgo.MessageCreate, quoteEntry model.Quote) error {
+func (s *Server) sendFileQuote(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate, quoteEntry model.Quote) error {
 	file, err := os.Open(quoteEntry.Data)
 	if err != nil {
 		return fmt.Errorf("failed to open attachment file: %w", err)
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to close attachment file", "err", err)
+		}
+	}(file)
 	callStart := time.Now()
 	_, err = sess.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
 		Files: []*discordgo.File{{

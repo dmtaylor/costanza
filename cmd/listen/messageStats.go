@@ -31,10 +31,7 @@ var leaderboardSlashCommand = &discordgo.ApplicationCommand{
 	Description: "Get the current guild leaderboard standings",
 }
 
-func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if util.MessageExcluded(sess, m) {
-		return
-	}
+func (s *Server) logMessageActivity(ctx context.Context, m *discordgo.MessageCreate) {
 	// Only log stats if channel included in configs
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
 		return
@@ -46,7 +43,6 @@ func (s *Server) logMessageActivity(sess *discordgo.Session, m *discordgo.Messag
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent, eventNameLabel: logActivityMetricEventName}).Observe(time.Since(start).Seconds())
 		}()
 	}
-	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 
 	if m.Type == discordgo.MessageTypeDefault || m.Type == discordgo.MessageTypeReply {
 		var err error
@@ -121,10 +117,7 @@ func (s *Server) logReactionActivity(sess *discordgo.Session, r *discordgo.Messa
 	}
 }
 
-func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.Type != discordgo.InteractionApplicationCommand || i.ApplicationCommandData().Name != leaderboardCommandName {
-		return
-	}
+func (s *Server) getLeaderboardStats(ctx context.Context, sess *discordgo.Session, i *discordgo.InteractionCreate) {
 
 	var err error
 	if s.m.enabled {
@@ -139,9 +132,6 @@ func (s *Server) getLeaderboardStats(sess *discordgo.Session, i *discordgo.Inter
 			}
 		}()
 	}
-	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
-	defer cancel()
-
 	// if guild isn't configured to listen, send message saying so
 	if _, ok := config.GlobalConfig.Discord.ListenChannelSet[i.GuildID]; !ok {
 		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

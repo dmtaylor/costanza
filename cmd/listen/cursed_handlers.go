@@ -13,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dmtaylor/costanza/config"
-	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const cursedChannelLogEventName = "cursed_channel"
@@ -74,14 +73,10 @@ func (s *Server) processCursedAdminCommand(sess *discordgo.Session, i *discordgo
 	}
 }
 
-func (s *Server) logCursedChannelStat(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if util.MessageExcluded(sess, m) {
-		return
-	}
+func (s *Server) logCursedChannelStat(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
 		return
 	}
-	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 	var err error
 	if s.m.enabled {
 		start := time.Now()
@@ -127,14 +122,10 @@ func (s *Server) logCursedChannelStat(sess *discordgo.Session, m *discordgo.Mess
 	}
 }
 
-func (s *Server) logCursedPostStat(sess *discordgo.Session, m *discordgo.MessageCreate) {
-	if util.MessageExcluded(sess, m) {
-		return
-	}
+func (s *Server) logCursedPostStat(ctx context.Context, sess *discordgo.Session, m *discordgo.MessageCreate) {
 	if _, found := config.GlobalConfig.Discord.ListenChannelSet[m.GuildID]; !found {
 		return
 	}
-	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
 	var err error
 	if s.m.enabled {
 		start := time.Now()

@@ -49,26 +49,6 @@ type metrics struct {
 // Update handler funcs to return error, and update middleware to take in required values & function. Do error check in
 // middleware & log failures. Figure out how to populate context
 
-func (s *Server) messageCreateMetricsMiddleware(f func(*discordgo.Session, *discordgo.MessageCreate)) func(*discordgo.Session, *discordgo.MessageCreate) {
-	return func(sess *discordgo.Session, m *discordgo.MessageCreate) {
-		if s.m.enabled {
-			s.m.eventReceives.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent}).Inc()
-			defer s.m.eventsHandled.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent}).Inc()
-		}
-		f(sess, m)
-	}
-}
-
-func (s *Server) interactionCreateMetricsMiddleware(f func(*discordgo.Session, *discordgo.InteractionCreate)) func(*discordgo.Session, *discordgo.InteractionCreate) {
-	return func(sess *discordgo.Session, i *discordgo.InteractionCreate) {
-		if s.m.enabled {
-			s.m.eventReceives.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent}).Inc()
-			defer s.m.eventsHandled.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent}).Inc()
-		}
-		f(sess, i)
-	}
-}
-
 func (s *Server) guildMemberAddMetricsMiddleware(f func(*discordgo.Session, *discordgo.GuildMemberAdd)) func(*discordgo.Session, *discordgo.GuildMemberAdd) {
 	return func(sess *discordgo.Session, j *discordgo.GuildMemberAdd) {
 		if s.m.enabled {

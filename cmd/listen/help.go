@@ -7,8 +7,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/prometheus/client_golang/prometheus"
-
-	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const helpCommandName = "chelp"
@@ -34,27 +32,13 @@ var helpSlashCommand = &discordgo.ApplicationCommand{
 }
 
 // help handler function for help messages
-func (s *Server) help(sess *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.Type != discordgo.InteractionApplicationCommand {
-		return
-	}
-	if i.User != nil && i.User.Bot {
-		return
-	}
-	if i.Member != nil && i.Member.User.Bot {
-		return
-	}
-	if i.ApplicationCommandData().Name != helpCommandName {
-		return
-	}
+func (s *Server) help(ctx context.Context, sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: helpCommandName}).Observe(time.Since(start).Seconds())
 		}()
 	}
-	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
-	defer cancel()
 	slog.DebugContext(ctx, "running help command")
 	callStart := time.Now()
 	err := sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

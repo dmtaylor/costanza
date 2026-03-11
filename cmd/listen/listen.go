@@ -2,6 +2,7 @@
 package listen
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -9,9 +10,11 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -132,19 +135,10 @@ func runListen(_ *cobra.Command, _ []string) error {
 		}
 		slog.Info("Bot started, CTL-C to quit")
 	})
-	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.help))
-	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.license))
-	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoQuote))
-	dg.AddHandler(server.messageCreateMetricsMiddleware(server.echoInsomniac))
-	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.dispatchRollCommands))
-	dg.AddHandler(server.messageCreateMetricsMiddleware(server.dailyGameHandler))
-	dg.AddHandler(server.messageCreateMetricsMiddleware(server.logMessageActivity))
-	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.weatherCommand))
+	dg.AddHandler(server.slashCommandFanout)
+	dg.AddHandler(server.messageCreateFanout)
 	dg.AddHandler(server.guildMemberAddMetricsMiddleware(server.welcomeMessage))
 	dg.AddHandler(server.messageReactionAddMetricsMiddleware(server.logReactionActivity))
-	dg.AddHandler(server.interactionCreateMetricsMiddleware(server.getLeaderboardStats))
-	dg.AddHandler(server.messageCreateMetricsMiddleware(server.logCursedChannelStat))
-	dg.AddHandler(server.messageCreateMetricsMiddleware(server.logCursedPostStat))
 	// dg.AddHandler(server.interactionCreateMetricsMiddleware(server.quoteTestCommand)) // Uncomment this to add test quote command handler
 	dg.Identify.Intents = discordgo.IntentsGuildMessages | discordgo.IntentsDirectMessages | discordgo.IntentsGuildMembers | discordgo.IntentsGuildMessageReactions
 
@@ -163,4 +157,86 @@ func runListen(_ *cobra.Command, _ []string) error {
 	<-sc
 
 	return closeErr
+}
+
+func (s *Server) slashCommandFanout(sess *discordgo.Session, i *discordgo.InteractionCreate) {
+	if i.User != nil && i.User.Bot {
+		return
+	}
+	if i.Member != nil && i.Member.User.Bot {
+		return
+	}
+	if i.Type != discordgo.InteractionApplicationCommand {
+		return
+	}
+	var handlerFn func(context.Context, *discordgo.Session, *discordgo.InteractionCreate)
+	var err error
+	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
+	defer cancel()
+	switch i.ApplicationCommandData().Name {
+	case helpCommandName:
+		handlerFn = s.help
+	case licenseCommandName:
+		handlerFn = s.license
+	case rollCommandName:
+		fallthrough
+	case shadowrunCommandName:
+		fallthrough
+	case worldOfDarknessCommandName:
+		fallthrough
+	case darkHeresyTestCommandName:
+		handlerFn = s.dispatchRollCommands
+	case weatherCommandName:
+		handlerFn = s.weatherCommand
+	case leaderboardCommandName:
+		handlerFn = s.getLeaderboardStats
+
+	default:
+		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Unrecognized command: " + i.ApplicationCommandData().Name,
+			}})
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to interact with command: "+err.Error())
+		}
+	}
+	if s.m.enabled {
+		s.m.eventReceives.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent}).Inc()
+		defer s.m.eventsHandled.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent}).Inc()
+	}
+	handlerFn(ctx, sess, i)
+}
+
+func (s *Server) messageCreateFanout(sess *discordgo.Session, m *discordgo.MessageCreate) {
+	if util.MessageExcluded(sess, m) {
+		return
+	}
+
+	ctx := util.ContextFromDiscordMessageCreate(context.Background(), m)
+	if s.m.enabled {
+		s.m.eventReceives.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent}).Inc()
+		defer s.m.eventsHandled.With(prometheus.Labels{gatewayEventTypeLabel: messageCreateGatewayEvent}).Inc()
+	}
+	var wg sync.WaitGroup
+
+	wg.Go(func() {
+		s.echoQuote(ctx, sess, m)
+	})
+	wg.Go(func() {
+		s.echoInsomniac(ctx, sess, m)
+	})
+	wg.Go(func() {
+		s.dailyGameHandler(ctx, sess, m)
+	})
+	wg.Go(func() {
+		s.logMessageActivity(ctx, m)
+	})
+	wg.Go(func() {
+		s.logCursedChannelStat(ctx, sess, m)
+	})
+	wg.Go(func() {
+		s.logCursedPostStat(ctx, sess, m)
+	})
+	wg.Wait()
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dmtaylor/costanza/config"
-	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const licenseCommandName = "license"
@@ -33,27 +32,13 @@ var licenseSlashCommand = &discordgo.ApplicationCommand{
 	Description: "Gets app info for costanza",
 }
 
-func (s *Server) license(sess *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.Type != discordgo.InteractionApplicationCommand {
-		return
-	}
-	if i.User != nil && i.User.Bot {
-		return
-	}
-	if i.Member != nil && i.Member.User.Bot {
-		return
-	}
-	if i.ApplicationCommandData().Name != licenseCommandName {
-		return
-	}
+func (s *Server) license(ctx context.Context, sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: licenseCommandName}).Observe(time.Since(start).Seconds())
 		}()
 	}
-	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
-	defer cancel()
 	callStart := time.Now()
 	err := sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,

@@ -36,22 +36,13 @@ var weatherSlashCommand = &discordgo.ApplicationCommand{
 	},
 }
 
-func (s *Server) weatherCommand(sess *discordgo.Session, i *discordgo.InteractionCreate) {
-	// Ensure we only get options from slash commands
-	if i.Type != discordgo.InteractionApplicationCommand {
-		return
-	}
-	if i.ApplicationCommandData().Name != weatherCommandName {
-		return
-	}
+func (s *Server) weatherCommand(ctx context.Context, sess *discordgo.Session, i *discordgo.InteractionCreate) {
 	if s.m.enabled {
 		start := time.Now()
 		defer func() {
 			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: weatherCommandName}).Observe(time.Since(start).Seconds())
 		}()
 	}
-	ctx, cancel := util.ContextFromDiscordInteractionCreate(context.Background(), i, interactionTimeout)
-	defer cancel()
 	var locations []string
 	for _, option := range i.ApplicationCommandData().Options {
 		if option.Name == "location" {

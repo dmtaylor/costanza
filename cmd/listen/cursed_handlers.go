@@ -108,7 +108,7 @@ func (s *Server) logCursedChannelStat(ctx context.Context, sess *discordgo.Sessi
 		slog.ErrorContext(ctx, "error logging activity: "+err.Error())
 		return
 	}
-	cursedChannels, err := s.app.CursedChannelCache.Get(ctx, guildId)
+	cursedChannels, err := s.app.CursedStatsHandler.GetCursedChannelList(ctx, guildId)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get cursed channel list: "+err.Error())
 		return
@@ -152,7 +152,7 @@ func (s *Server) logCursedPostStat(ctx context.Context, sess *discordgo.Session,
 		slog.ErrorContext(ctx, "error logging activity: "+err.Error())
 		return
 	}
-	cursedWords, err := s.app.CursedWordCache.Get(ctx, guildId)
+	cursedWords, err := s.app.CursedStatsHandler.GetCursedWordsList(ctx, guildId)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to get cursed word list: "+err.Error())
 		return

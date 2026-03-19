@@ -30,8 +30,7 @@ type App struct {
 	ThresholdRoller    *roller.ThresholdRoller
 	ConnPool           model.DbPool
 	Stats              *stats.Stats
-	CursedChannelCache cache.ChannelCache
-	CursedWordCache    cache.StringListCache
+	CursedStatsHandler *stats.CursedHandler
 }
 
 var loader sync.Once
@@ -68,7 +67,6 @@ func LoadApp() (*App, error) {
 			err = fmt.Errorf("server failed to build quote engine: %w", err)
 			return
 		}
-		statsSvc := stats.New(pool)
 		dNotationParser, err := parser.NewDNotationParser()
 		if err != nil {
 			err = fmt.Errorf("failed to build parser: %w", err)
@@ -79,16 +77,10 @@ func LoadApp() (*App, error) {
 			err = fmt.Errorf("failed to build threshold roller: %w", err)
 			return
 		}
-		cursedChannelCache := cache.NewDbChannelCache(pool)
-		err = preloadCache(cursedChannelCache)
+		cursedStatsHandler := stats.NewCursedHandler(pool)
+		err = preloadCache(cursedStatsHandler)
 		if err != nil {
-			err = fmt.Errorf("failed to create channel cache: %w", err)
-			return
-		}
-		cursedWordCache := cache.NewPgxStringListCache(pool)
-		err = preloadCache(cursedWordCache)
-		if err != nil {
-			err = fmt.Errorf("failed to build word cache: %w", err)
+			err = fmt.Errorf("failed to preload cursed stats handler caches: %w", err)
 			return
 		}
 		app = App{
@@ -96,9 +88,8 @@ func LoadApp() (*App, error) {
 			DNotationParser:    dNotationParser,
 			ThresholdRoller:    thRoller,
 			ConnPool:           pool,
-			Stats:              &statsSvc,
-			CursedChannelCache: cursedChannelCache,
-			CursedWordCache:    cursedWordCache,
+			Stats:              new(stats.New(pool)),
+			CursedStatsHandler: cursedStatsHandler,
 		}
 	})
 	if err != nil {

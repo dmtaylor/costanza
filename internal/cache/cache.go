@@ -11,3 +11,8 @@ const defaultEntryDuration = time.Minute * 15
 type PreloadableCache interface {
 	PreloadCache(ctx context.Context, guildIds []uint64) error
 }
+
+type InvalidationCache interface {
+	Clear(ctx context.Context)
+	InvalidateKey(ctx context.Context, key uint64)
+}

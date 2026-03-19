@@ -17,7 +17,6 @@ import (
 type StringListCache interface {
 	Get(ctx context.Context, key uint64) ([]string, error)
 	Set(ctx context.Context, key uint64, value []string)
-	Clear(ctx context.Context)
 }
 
 // TODO update PgxStringListCache to have a configurable table & column name to make more generic
@@ -45,6 +44,17 @@ func (c *PgxStringListCache) Clear(_ context.Context) {
 	c.cache = make(map[uint64]stringListCacheItem)
 }
 
+func (c *PgxStringListCache) InvalidateKey(_ context.Context, key uint64) {
+	c.cacheLock.Lock()
+	defer c.cacheLock.Unlock()
+	if _, ok := c.cache[key]; ok {
+		c.cache[key] = stringListCacheItem{
+			value:  nil,
+			expiry: time.Time{}, // Expire timestamp
+		}
+	}
+}
+
 func (c *PgxStringListCache) Set(_ context.Context, key uint64, value []string) {
 	c.cacheLock.Lock()
 	defer c.cacheLock.Unlock()
@@ -59,21 +69,20 @@ func (c *PgxStringListCache) Get(ctx context.Context, key uint64) ([]string, err
 	if item, ok := c.cache[key]; ok && time.Now().Before(item.expiry) {
 		c.cacheLock.RUnlock()
 		return item.value, nil
-	} else {
-		c.cacheLock.RUnlock()
-		c.updating.Lock()
-		defer c.updating.Unlock()
-		if item, ok := c.cache[key]; !ok || time.Now().After(item.expiry) {
-			slog.DebugContext(ctx, "refreshing str list cache for key "+strconv.FormatUint(key, 10))
-			dbValues, err := c.fetchDbValues(ctx, key)
-			if err != nil {
-				return nil, fmt.Errorf("failed to pull into cache: %w", err)
-			}
-			c.Set(ctx, key, dbValues)
-			return dbValues, nil
-		} else {
-			return item.value, nil
+	}
+	c.cacheLock.RUnlock()
+	c.updating.Lock()
+	defer c.updating.Unlock()
+	if item, ok := c.cache[key]; !ok || time.Now().After(item.expiry) {
+		slog.DebugContext(ctx, "refreshing str list cache for key "+strconv.FormatUint(key, 10))
+		dbValues, err := c.fetchDbValues(ctx, key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to pull into cache: %w", err)
 		}
+		c.Set(ctx, key, dbValues)
+		return dbValues, nil
+	} else {
+		return item.value, nil
 	}
 }
 

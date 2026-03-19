@@ -17,7 +17,6 @@ import (
 type ChannelCache interface {
 	Get(ctx context.Context, key uint64) ([]uint64, error)
 	Set(ctx context.Context, key uint64, value []uint64)
-	Clear(ctx context.Context)
 }
 
 type DbChannelCache struct {
@@ -43,6 +42,17 @@ func (c *DbChannelCache) Clear(_ context.Context) {
 	c.cache = make(map[uint64]channelCacheItem)
 }
 
+func (c *DbChannelCache) InvalidateKey(_ context.Context, key uint64) {
+	c.cacheLock.Lock()
+	defer c.cacheLock.Unlock()
+	if _, ok := c.cache[key]; ok {
+		c.cache[key] = channelCacheItem{
+			value:  []uint64{},
+			expiry: time.Time{}, // Expire the key by setting it back in time
+		}
+	}
+}
+
 func (c *DbChannelCache) Set(_ context.Context, key uint64, value []uint64) {
 	c.cacheLock.Lock()
 	defer c.cacheLock.Unlock()
@@ -57,21 +67,20 @@ func (c *DbChannelCache) Get(ctx context.Context, key uint64) ([]uint64, error) 
 	if item, ok := c.cache[key]; ok && time.Now().Before(item.expiry) {
 		c.cacheLock.RUnlock()
 		return item.value, nil
-	} else {
-		c.cacheLock.RUnlock()
-		c.updating.Lock()
-		defer c.updating.Unlock()
-		if item, ok := c.cache[key]; !ok || time.Now().After(item.expiry) {
-			slog.DebugContext(ctx, "refreshing cache for key "+strconv.FormatUint(key, 10))
-			dbValues, err := c.fetchDbValues(ctx, key)
-			if err != nil {
-				return nil, fmt.Errorf("failed to pull into cache: %w", err)
-			}
-			c.Set(ctx, key, dbValues)
-			return dbValues, nil
-		} else {
-			return item.value, nil
+	}
+	c.cacheLock.RUnlock()
+	c.updating.Lock()
+	defer c.updating.Unlock()
+	if item, ok := c.cache[key]; !ok || time.Now().After(item.expiry) {
+		slog.DebugContext(ctx, "refreshing cache for key "+strconv.FormatUint(key, 10))
+		dbValues, err := c.fetchDbValues(ctx, key)
+		if err != nil {
+			return nil, fmt.Errorf("failed to pull into cache: %w", err)
 		}
+		c.Set(ctx, key, dbValues)
+		return dbValues, nil
+	} else {
+		return item.value, nil
 	}
 }
 

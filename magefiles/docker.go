@@ -43,7 +43,7 @@ func (Docker) Run(env string, background bool) error {
 	if env != prodEnv && env != devEnv {
 		return fmt.Errorf("invalid environment: %s, only \"prod\" and \"dev\" are valid choices")
 	}
-	mg.Deps(Tests, mg.F(dbDir, env))
+	mg.Deps(mg.F(dbDir, env))
 	dockerAppName := getDockerAppName(env)
 
 	var cmd *exec.Cmd
@@ -95,6 +95,21 @@ func (Docker) Status(env string) error {
 	}
 	dockerAppName := getDockerAppName(env)
 	cmd := exec.Command("docker", "compose", "-f", "docker-compose.yml", "-f", "docker-compose."+env+".yml", "-p", dockerAppName, "ps")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// Down brings app running in background down
+func (Docker) Down(env string) error {
+	if env == "" {
+		env = devEnv
+	}
+	if env != prodEnv && env != devEnv {
+		return fmt.Errorf("invalid environment: %s, only \"prod\" and \"dev\" are valid choices")
+	}
+	dockerAppName := getDockerAppName(env)
+	cmd := exec.Command("docker", "compose", "-f", "docker-compose.yml", "-f", "docker-compose."+env+".yml", "-p", dockerAppName, "down")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()

@@ -14,6 +14,8 @@ import (
 
 const appName = "costanza"
 
+type Tests mg.Namespace
+
 // Build builds the application binary
 func Build() error {
 	toUpdate, err := target.Dir(appName, "main.go", "cmd", "config", "internal")
@@ -46,9 +48,18 @@ func Rebuild() error {
 }
 
 // Tests run all tests
-func Tests() error {
+func (Tests) Test() error {
 	mg.Deps(Build)
 	fmt.Println("running tests...")
+	cmd := exec.Command("go", "test", "./...")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+func (Tests) Benchmarks() error {
+	mg.Deps(Build)
+	fmt.Println("running benchmarks...")
 	cmd := exec.Command("go", "test", "-v", "-bench=.", "./...")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

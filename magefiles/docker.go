@@ -19,14 +19,16 @@ const devDbDir = "/var/costanza_dev/db_data"
 type Docker mg.Namespace
 
 // Build builds the docker-compose image for the app with the given environment
-func (Docker) Build(env string) error {
+func (Docker) Build(env string, runTests *bool) error {
 	if env == "" {
 		env = devEnv
 	}
 	if env != prodEnv && env != devEnv {
 		return fmt.Errorf("invalid environment: %s, only \"prod\" and \"dev\" are valid choices")
 	}
-	mg.Deps(Tests)
+	if runTests != nil && *runTests {
+		mg.Deps(Tests.Test)
+	}
 	dockerAppName := getDockerAppName(env)
 	fmt.Println("tests passed: building")
 	cmd := exec.Command("docker", "compose", "-f", "docker-compose.yml", "-f", "docker-compose."+env+".yml", "-p", dockerAppName, "build")
@@ -36,7 +38,7 @@ func (Docker) Build(env string) error {
 }
 
 // Run brings up docker compose application for given environment in foreground or background
-func (Docker) Run(env string, background bool) error {
+func (Docker) Run(env string, background bool, runTests *bool) error {
 	if env == "" {
 		env = devEnv
 	}
@@ -44,6 +46,9 @@ func (Docker) Run(env string, background bool) error {
 		return fmt.Errorf("invalid environment: %s, only \"prod\" and \"dev\" are valid choices")
 	}
 	mg.Deps(mg.F(dbDir, env))
+	if runTests != nil && *runTests {
+		mg.Deps(Tests.Test)
+	}
 	dockerAppName := getDockerAppName(env)
 
 	var cmd *exec.Cmd
@@ -58,14 +63,17 @@ func (Docker) Run(env string, background bool) error {
 }
 
 // Restart force rebuilds & runs docker compose application with given env in foreground or background
-func (Docker) Restart(env string, background bool) error {
+func (Docker) Restart(env string, background bool, runTests *bool) error {
 	if env == "" {
 		env = devEnv
 	}
 	if env != prodEnv && env != devEnv {
 		return fmt.Errorf("invalid environment: %s, only \"prod\" and \"dev\" are valid choices")
 	}
-	mg.Deps(Tests, mg.F(dbDir, env))
+	mg.Deps(Tests.Test, mg.F(dbDir, env))
+	if runTests != nil && *runTests {
+		mg.Deps(Tests.Test)
+	}
 	dockerAppName := getDockerAppName(env)
 
 	cmd := exec.Command("docker", "compose", "-f", "docker-compose.yml", "-f", "docker-compose."+env+".yml", "-p", dockerAppName, "build", "--no-cache")

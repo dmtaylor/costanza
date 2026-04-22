@@ -8,7 +8,7 @@ require (
 	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/go-co-op/gocron v1.37.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/jackc/pgx/v5 v5.8.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/magefile/mage v1.15.0
 	github.com/pashagolub/pgxmock/v2 v2.12.0
 	github.com/prometheus/client_golang v1.23.2

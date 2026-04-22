@@ -97,6 +97,10 @@ func (ch *CursedHandler) RemoveWordFromCursedList(ctx context.Context, guildId u
 	if result.RowsAffected() == 0 {
 		return nil
 	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 	ch.cursedWordCache.InvalidateKey(ctx, guildId)
 	return nil
 }

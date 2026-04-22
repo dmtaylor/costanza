@@ -14,14 +14,17 @@ const helpMessage string = `
 Costanza commands:
 ` +
 	"```" + `
-/chelp:       this message.
-/roll:        parse text as d-notation and evaluate expression.
-/srroll:      parse text as d-notation, evaluate, and use result for Shadowrun roll.
-/wodroll:     parse text as d-notation, evaluate, and use result for World of Darkness roll.
-              Can be modified with '8again', '9again' and 'chance'. Rolls of < 1 dice are done as chance rolls.
-/dhtest:      parse text as d-notation, evaluate, and use result for FF Warhammer 40k RPG roll (over-under on 1d100).
-/weather:     get weather information for given location, or default
-/leaderboard: print the leaderboard for the month so far for the given server, if configured
+/chelp:               this message.
+/roll:                parse text as d-notation and evaluate expression.
+/srroll:              parse text as d-notation, evaluate, and use result for Shadowrun roll.
+/wodroll:             parse text as d-notation, evaluate, and use result for World of Darkness roll.
+                      Can be modified with '8again', '9again' and 'chance'. Rolls of < 1 dice are done as chance rolls.
+/dhtest:              parse text as d-notation, evaluate, and use result for FF Warhammer 40k RPG roll (over-under on 1d100).
+/weather:             get weather information for given location, or default
+/leaderboard:         print the leaderboard for the month so far for the given server, if configured
+/cursed-admin add:    add cursed words to the cursed word list for the current server
+/cursed-admin remove: remove cursed words from the cursed word list for the current server
+/cursed-admin list:   list the cursed words for the current server
 ` +
 	"```"
 

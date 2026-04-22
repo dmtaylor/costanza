@@ -67,12 +67,32 @@ var cursedAdminSlashCommand = &discordgo.ApplicationCommand{
 }
 
 func (s *Server) processCursedAdminCommand(ctx context.Context, sess *discordgo.Session, i *discordgo.InteractionCreate) {
-	options := i.ApplicationCommandData().Options
 	var err error = nil
-	switch options[0].Name {
+	if i.Member.Permissions&discordgo.PermissionManageGuild != discordgo.PermissionManageGuild {
+		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "You must have permissions to manage the guild to run this command",
+			},
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("Failed sending interaction response: %v", err), "error", err)
+			return
+		}
+	}
+	options := i.ApplicationCommandData().Options
+	topName := options[0].Name
+	if s.m.enabled {
+		start := time.Now()
+		defer func() {
+			s.m.eventDuration.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cursedAdminCommandName + "." + topName}).Observe(time.Since(start).Seconds())
+		}()
+	}
+	switch topName {
 	case cursedAdminAddSubcommand:
 		innerOptions := options[0].Options
 		newValue := innerOptions[0].StringValue()
+		slog.DebugContext(ctx, "Adding new word", "newValue", newValue)
 		err = s.app.CursedStatsHandler.AddWordToCursedList(ctx, util.MustSnowflakeToInt(i.GuildID), newValue)
 		if err != nil {
 			if s.m.enabled {
@@ -105,8 +125,9 @@ func (s *Server) processCursedAdminCommand(ctx context.Context, sess *discordgo.
 		}
 	case cursedAdminRemoveSubcommand:
 		innerOptions := options[0].Options
-		newValue := innerOptions[0].StringValue()
-		err = s.app.CursedStatsHandler.RemoveWordFromCursedList(ctx, util.MustSnowflakeToInt(i.GuildID), newValue)
+		valueToRemove := innerOptions[0].StringValue()
+		slog.DebugContext(ctx, "Removing word from cursed list", "value", valueToRemove)
+		err = s.app.CursedStatsHandler.RemoveWordFromCursedList(ctx, util.MustSnowflakeToInt(i.GuildID), valueToRemove)
 		if err != nil {
 			if s.m.enabled {
 				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cursedAdminCommandName + "." + cursedAdminRemoveSubcommand, isTimeoutLabel: "false"}).Inc()

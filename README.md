@@ -60,6 +60,7 @@ if the roll is a chance die, has 8-again, or 9-again. Rolls of < 1 dice are ran 
 RPG skill test (i.e. over or under 1d100)
 - `/weather [location]`: gets current weather conditions for given location, or defaults from config file. Uses [wttr.in](https://wttr.in/) for weather data.
 - `/leaderboard`: displays the stats leaderboards for the month so far
+- `/cursed-admin [add|remove|list]`: View & modify the cursed word list for the server
 
 ## Environment Variables
 

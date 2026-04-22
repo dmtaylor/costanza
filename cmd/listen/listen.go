@@ -113,6 +113,8 @@ func runListen(_ *cobra.Command, _ []string) error {
 		dg.ShardID = int(config.GlobalConfig.Discord.ShardId)
 		dg.ShardCount = int(config.GlobalConfig.Discord.ShardCount)
 	}
+	// Reconnect if the websocket disconnects, this should be default behavior
+	dg.ShouldReconnectOnError = true
 
 	dg.AddHandlerOnce(func(sess *discordgo.Session, ready *discordgo.Ready) {
 		listen := false
@@ -190,6 +192,8 @@ func (s *Server) slashCommandFanout(sess *discordgo.Session, i *discordgo.Intera
 		handlerFn = s.weatherCommand
 	case leaderboardCommandName:
 		handlerFn = s.getLeaderboardStats
+	case cursedAdminCommandName:
+		handlerFn = s.processCursedAdminCommand
 
 	default:
 		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

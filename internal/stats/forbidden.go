@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/hashicorp/go-multierror"
 	"github.com/jackc/pgx/v5"
 
@@ -60,7 +59,8 @@ func (ch *CursedHandler) AddWordToCursedList(ctx context.Context, guildId uint64
 			slog.ErrorContext(ctx, "failed to rollback transaction: "+err.Error())
 		}
 	}(tx, ctx)
-	err = pgxscan.Select(ctx, tx, &wordPresent, "SELECT EXISTS(SELECT 1 FROM cursed_word_list WHERE guild_id = $1 AND word = $2)", guildId, word)
+	row := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM cursed_word_list WHERE guild_id = $1 AND word = $2)", guildId, word)
+	err = row.Scan(&wordPresent)
 	if err != nil {
 		return fmt.Errorf("failed to check word existence: %w", err)
 	}
@@ -90,7 +90,7 @@ func (ch *CursedHandler) RemoveWordFromCursedList(ctx context.Context, guildId u
 			slog.ErrorContext(ctx, "failed to rollback transaction: "+err.Error())
 		}
 	}(tx, ctx)
-	result, err := tx.Exec(ctx, "DELETE FROM cursed_word WHERE guild_id = $1 AND word = $2", guildId, word)
+	result, err := tx.Exec(ctx, "DELETE FROM cursed_word_list WHERE guild_id = $1 AND word = $2", guildId, word)
 	if err != nil {
 		return fmt.Errorf("failed to remove word from cursed list: %w", err)
 	}

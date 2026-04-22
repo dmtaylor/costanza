@@ -3,6 +3,7 @@ package listen
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"slices"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dmtaylor/costanza/config"
+	"github.com/dmtaylor/costanza/internal/util"
 )
 
 const cursedChannelLogEventName = "cursed_channel"
@@ -64,12 +66,120 @@ var cursedAdminSlashCommand = &discordgo.ApplicationCommand{
 	},
 }
 
-func (s *Server) processCursedAdminCommand(sess *discordgo.Session, i *discordgo.InteractionCreate) {
-	if i.Type != discordgo.InteractionApplicationCommand {
-		return
+func (s *Server) processCursedAdminCommand(ctx context.Context, sess *discordgo.Session, i *discordgo.InteractionCreate) {
+	options := i.ApplicationCommandData().Options
+	var err error = nil
+	switch options[0].Name {
+	case cursedAdminAddSubcommand:
+		innerOptions := options[0].Options
+		newValue := innerOptions[0].StringValue()
+		err = s.app.CursedStatsHandler.AddWordToCursedList(ctx, util.MustSnowflakeToInt(i.GuildID), newValue)
+		if err != nil {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cursedAdminCommandName + "." + cursedAdminAddSubcommand, isTimeoutLabel: "false"}).Inc()
+			}
+			slog.ErrorContext(ctx, fmt.Sprintf("Error adding word to cursed list: %v", err), "error", err)
+			err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("Failed to add word to cursed list"),
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			if err != nil {
+				slog.ErrorContext(ctx, fmt.Sprintf("Failed sending interaction response: %v", err), "error", err)
+				return
+			}
+			return
+		}
+		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Added word to cursed list"),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("Failed sending interaction response: %v", err), "error", err)
+			return
+		}
+	case cursedAdminRemoveSubcommand:
+		innerOptions := options[0].Options
+		newValue := innerOptions[0].StringValue()
+		err = s.app.CursedStatsHandler.RemoveWordFromCursedList(ctx, util.MustSnowflakeToInt(i.GuildID), newValue)
+		if err != nil {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cursedAdminCommandName + "." + cursedAdminRemoveSubcommand, isTimeoutLabel: "false"}).Inc()
+			}
+			slog.ErrorContext(ctx, fmt.Sprintf("Error adding word to cursed list: %v", err), "error", err)
+			err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("Failed to remove word from cursed list"),
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			if err != nil {
+				slog.ErrorContext(ctx, fmt.Sprintf("Failed sending interaction response: %v", err), "error", err)
+				return
+			}
+			return
+		}
+		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: fmt.Sprintf("Removed word from cursed list"),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("Failed sending interaction response: %v", err), "error", err)
+			return
+		}
+	case cursedAdminListSubcommand:
+		wordList, err := s.app.CursedStatsHandler.GetCursedWordsList(ctx, util.MustSnowflakeToInt(i.GuildID))
+		if err != nil {
+			if s.m.enabled {
+				s.m.eventErrors.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cursedAdminCommandName + "." + cursedAdminListSubcommand, isTimeoutLabel: "false"}).Inc()
+			}
+			slog.ErrorContext(ctx, fmt.Sprintf("Error adding word to cursed list: %v", err), "error", err)
+			err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: fmt.Sprintf("Failed to get cursed word list"),
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+			if err != nil {
+				slog.ErrorContext(ctx, fmt.Sprintf("Failed sending interaction response: %v", err), "error", err)
+				return
+			}
+			return
+		}
+		strBuilder := strings.Builder{}
+		strBuilder.WriteString(fmt.Sprintf("Cursed words list:\n"))
+		if len(wordList) > 0 {
+			for _, word := range wordList {
+				strBuilder.WriteString(fmt.Sprintf("* `%s`\n", word))
+			}
+		} else {
+			strBuilder.WriteString("No words in the list")
+		}
+		err = sess.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: strBuilder.String(),
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, fmt.Sprintf("Failed sending interaction response: %v", err), "error", err)
+			return
+		}
+
 	}
-	if i.ApplicationCommandData().Name != cursedAdminCommandName {
-		return
+	if s.m.enabled {
+		s.m.eventSuccess.With(prometheus.Labels{gatewayEventTypeLabel: interactionCreateGatewayEvent, eventNameLabel: cursedAdminCommandName + "." + options[0].Name}).Inc()
 	}
 }
 
